@@ -7,158 +7,208 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
     <style>
-        .post-card { margin-bottom: 1.5rem; }
-        .modal { transition: opacity 0.3s ease; }
-        .tab-active { background-color: #4f46e5; color: white; }
-        .lock-animation { animation: shake 0.5s; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .modal {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            max-width: 400px;
+        }
+        .post-card {
+            margin-bottom: 1.5rem;
+        }
+        .tab-active {
+            color: #4f46e5;
+            border-bottom: 2px solid #4f46e5;
+        }
+        .dropdown-content {
+            display: none;
+        }
+        .dropdown-content.active {
+            display: block;
+        }
+        .lock-animation {
+            animation: shake 0.5s;
+        }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
     <!-- 歡迎區塊 -->
     <div id="welcome-section" class="min-h-screen flex items-center justify-center">
         <div class="text-center">
-            <h1 class="text-5xl font-bold text-indigo-600 mb-6">Zyra</h1>
-            <p class="text-xl text-gray-600 mb-8">向全世界分享你的想法</p>
+            <h1 class="text-5xl font-bold text-gray-800 mb-6">Zyra</h1>
+            <p class="text-lg text-gray-600 mb-8">分享你的想法，與世界連結</p>
             <button id="start-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">開始使用</button>
         </div>
     </div>
 
-    <!-- 內容區塊 -->
-    <div id="content-section" class="hidden max-w-3xl mx-auto p-6">
-        <nav class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-indigo-600">Zyra</h1>
-            <div id="nav-buttons" class="flex space-x-4">
-                <button id="login-nav-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">登入</button>
-                <button id="register-nav-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition">註冊</button>
+    <!-- 導航列 -->
+    <nav class="bg-white shadow p-4 sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Zyra</h1>
+            <div id="nav-buttons" class="space-x-4">
+                <button id="login-nav-btn" class="text-indigo-600 hover:text-indigo-800">登入</button>
+                <button id="register-nav-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
             </div>
-            <div id="user-info" class="hidden flex items-center space-x-4">
-                <div class="relative">
-                    <button id="settings-btn" class="flex items-center space-x-2">
-                        <div id="nav-avatar-text" class="bg-indigo-100 text-indigo-800 font-bold h-8 w-8 rounded-full flex items-center justify-center"></div>
-                        <img id="nav-avatar-img" class="hidden h-8 w-8 rounded-full object-cover" src="" alt="頭像">
-                        <span id="username-display" class="text-gray-800 font-medium"></span>
-                    </button>
-                    <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2">
-                        <button id="profile-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">個人資料</button>
-                        <button id="simulate-ban-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">模擬停權</button>
-                        <button id="logout-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">登出</button>
+            <div id="user-info" class="hidden relative">
+                <div class="flex items-center space-x-3">
+                    <div id="nav-avatar" class="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center bg-indigo-100">
+                        <span id="nav-avatar-text" class="text-indigo-800 font-bold"></span>
+                        <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="用戶頭像">
                     </div>
+                    <span id="username-display" class="font-medium text-gray-800"></span>
+                    <button id="settings-btn" class="text-gray-600 hover:text-gray-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-2">
+                    <button id="profile-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">個人資料</button>
+                    <button id="admin-panel-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hidden">管理員面板</button>
+                    <button id="simulate-ban-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">模擬停權</button>
+                    <button id="logout-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">登出</button>
                 </div>
             </div>
-        </nav>
-        <!-- 管理員面板 -->
-        <div id="admin-panel" class="hidden bg-white rounded-xl shadow-md p-6 mb-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">管理員面板</h3>
-            <div class="flex space-x-4">
-                <input id="ban-username" type="text" class="flex-grow border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="輸入要封禁的用戶名">
-                <input id="ban-days" type="number" min="1" class="w-24 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="封禁天數">
-                <button id="ban-user-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">封禁用戶</button>
+        </div>
+    </nav>
+
+    <!-- 內容區塊 -->
+    <div id="content-section" class="max-w-4xl mx-auto py-6 hidden">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="分享你的想法..."></textarea>
+            <div class="flex justify-end mt-3">
+                <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">發布</button>
             </div>
         </div>
-        <!-- 發布貼文 -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500" rows="4" placeholder="分享你的想法..."></textarea>
-            <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg mt-3 hover:bg-indigo-700 transition">發布</button>
-        </div>
-        <!-- 貼文容器 -->
         <div id="posts-container" class="space-y-6"></div>
     </div>
 
     <!-- 停權區塊 -->
-    <div id="banned-section" class="hidden min-h-screen flex items-center justify-center">
+    <div id="banned-section" class="min-h-screen flex items-center justify-center hidden">
         <div class="text-center">
-            <svg id="lock-icon" class="lock-animation mx-auto h-16 w-16 text-red-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c-1.104 0-2-.896-2-2s.896-2 2-2 2 .896 2 2-.896 2-2 2zm0 2c1.104 0 2 .896 2 2v3h-4v-3c0-1.104.896-2 2-2zm0-12c-4.418 0-8 3.582-8 8v6c0 4.418 3.582 8 8 8s8-3.582 8-8v-6c0-4.418-3.582-8-8-8z"/>
+            <svg class="lock-animation mx-auto h-16 w-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v4c0 1.104.896 2 2 2h2c1.104 0 2-.896 2-2v-2m2-6h6m-6 0v6m0-6V5c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v2" />
             </svg>
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">您的帳號已被停權</h2>
-            <p class="text-gray-600 mb-4">剩餘停權時間：</p>
-            <div class="relative inline-block">
-                <svg class="w-24 h-24">
-                    <circle class="text-gray-200" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"/>
-                    <circle id="countdown-circle" class="text-red-600" stroke-width="8" stroke-dasharray="251" stroke-dashoffset="0" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"/>
-                </svg>
-                <span id="days-count" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold text-gray-800"></span>
-            </div>
-            <p id="countdown-days" class="text-gray-600 mt-4"></p>
+            <h2 class="text-2xl font-bold text-gray-800 mt-4">您的帳號已被停權</h2>
+            <p class="text-gray-600 mt-2">剩餘 <span id="days-count">0</span> 天</p>
+            <svg class="mx-auto mt-4" width="100" height="100">
+                <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none" />
+                <circle id="countdown-circle" cx="50" cy="50" r="40" stroke="#ef4444" stroke-width="8" fill="none" stroke-dasharray="251" stroke-dashoffset="0" />
+                <text id="countdown-days" x="50" y="55" text-anchor="middle" font-size="20" fill="#1f2937">0</text>
+            </svg>
         </div>
     </div>
 
     <!-- 登入模態框 -->
-    <div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center modal">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">登入</h2>
-            <input id="login-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="用戶名">
+    <div id="login-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">登入</h2>
+            <input id="login-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱">
             <input id="login-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼">
-            <button id="login-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition">登入</button>
-            <button id="to-register-btn" class="mt-4 text-indigo-600 hover:underline">沒有帳號？註冊</button>
-            <button class="close-modal mt-2 text-gray-500 hover:text-gray-700">關閉</button>
+            <button id="login-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">登入</button>
+            <p class="mt-4 text-center text-gray-600">還沒有帳號？ <button id="to-register-btn" class="text-indigo-600 hover:underline">註冊</button></p>
+            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     </div>
 
     <!-- 註冊模態框 -->
-    <div id="register-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center modal">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">註冊</h2>
-            <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="用戶名">
+    <div id="register-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">註冊</h2>
+            <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱">
             <input id="register-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="電子郵件">
             <input id="register-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼">
-            <button id="register-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition">註冊</button>
-            <button id="to-login-btn" class="mt-4 text-indigo-600 hover:underline">已有帳號？登入</button>
-            <button class="close-modal mt-2 text-gray-500 hover:text-gray-700">關閉</button>
+            <button id="register-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
+            <p class="mt-4 text-center text-gray-600">已有帳號？ <button id="to-login-btn" class="text-indigo-600 hover:underline">登入</button></p>
+            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     </div>
 
     <!-- 個人資料模態框 -->
-    <div id="profile-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center modal">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">個人資料</h2>
+    <div id="profile-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">個人資料</h2>
             <div class="flex mb-4">
-                <button id="profile-tab-btn" class="tab-active flex-1 py-2 px-4 text-center rounded-l-lg">個人資訊</button>
-                <button id="password-tab-btn" class="flex-1 py-2 px-4 text-center text-gray-500 rounded-r-lg">更改密碼</button>
+                <button id="profile-tab-btn" class="tab-active px-4 py-2 text-indigo-600 font-medium">個人資料</button>
+                <button id="password-tab-btn" class="px-4 py-2 text-gray-500">更改密碼</button>
             </div>
             <div id="profile-tab">
                 <div class="flex items-center mb-4">
-                    <div id="profile-avatar" class="bg-indigo-100 text-indigo-800 font-bold h-12 w-12 rounded-full flex items-center justify-center"></div>
-                    <img id="profile-avatar-img" class="hidden h-12 w-12 rounded-full object-cover" src="" alt="頭像">
+                    <div id="profile-avatar" class="h-12 w-12 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center"></div>
+                    <img id="profile-avatar-img" class="h-12 w-12 rounded-full object-cover hidden" alt="用戶頭像">
                     <button id="change-avatar-btn" class="ml-4 text-indigo-600 hover:underline">更改頭像</button>
                     <input id="avatar-input" type="file" accept="image/*" class="hidden">
                 </div>
-                <p class="text-gray-700 mb-2">用戶名：<span id="profile-username"></span></p>
-                <p class="text-gray-700 mb-4">電子郵件：<span id="profile-email"></span></p>
-                <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新用戶名">
+                <p class="text-gray-700 mb-2">使用者名稱: <span id="profile-username"></span></p>
+                <p class="text-gray-700 mb-4">電子郵件: <span id="profile-email"></span></p>
+                <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱">
                 <input id="update-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新電子郵件">
-                <button id="update-profile-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition">更新資料</button>
+                <button id="update-profile-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更新資料</button>
             </div>
             <div id="password-tab" class="hidden">
                 <input id="current-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="目前密碼">
                 <input id="new-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新密碼">
                 <input id="confirm-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="確認新密碼">
-                <button id="update-password-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition">更改密碼</button>
+                <button id="update-password-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更改密碼</button>
             </div>
-            <button class="close-modal mt-4 text-gray-500 hover:text-gray-700">關閉</button>
+            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- 管理員面板模態框 -->
+    <div id="admin-panel-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員面板</h2>
+            <input id="ban-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="要禁制的用戶名稱">
+            <input id="ban-days" type="number" min="1" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="禁制天數">
+            <button id="ban-user-btn" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">禁制用戶</button>
+            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     </div>
 
     <!-- 刪除確認對話框 -->
-    <div id="delete-confirm-dialog" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center dialog-overlay">
-        <div class="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">確認刪除</h3>
-            <p class="text-gray-600 mb-4">確定要刪除此貼文嗎？</p>
+    <div id="delete-confirm-dialog" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="dialog-overlay absolute inset-0 bg-black opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-sm relative z-10">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">確定要刪除這篇貼文嗎？</h2>
             <div class="flex justify-end space-x-4">
-                <button id="cancel-delete-btn" class="text-gray-500 hover:text-gray-700">取消</button>
-                <button id="confirm-delete-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">刪除</button>
+                <button id="cancel-delete-btn" class="px-4 py-2 text-gray-600 hover:text-gray-800">取消</button>
+                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">確認</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 初始化 Socket.IO
-        const socket = io('https://zyra-backend-9317.onrender.com'); // 你的 Render 後端 URL
+        // 初始化 Socket.IO，指向 Render 後端
+        const socket = io('https://zyra-backend-9317.onrender.com');
 
         // 當前登入用戶
         let currentUser = null;
@@ -168,11 +218,11 @@
         const loginModal = document.getElementById('login-modal');
         const registerModal = document.getElementById('register-modal');
         const profileModal = document.getElementById('profile-modal');
+        const adminPanelModal = document.getElementById('admin-panel-modal');
         const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
         const welcomeSection = document.getElementById('welcome-section');
         const contentSection = document.getElementById('content-section');
         const bannedSection = document.getElementById('banned-section');
-        const adminPanel = document.getElementById('admin-panel');
         const navButtons = document.getElementById('nav-buttons');
         const userInfo = document.getElementById('user-info');
         const usernameDisplay = document.getElementById('username-display');
@@ -189,12 +239,13 @@
         const avatarInput = document.getElementById('avatar-input');
         const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
         const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
-        const banUserBtn = document.getElementById('ban-user-btn');
-        const banUsernameInput = document.getElementById('ban-username');
-        const banDaysInput = document.getElementById('ban-days');
         const countdownCircle = document.getElementById('countdown-circle');
         const countdownDays = document.getElementById('countdown-days');
         const daysCount = document.getElementById('days-count');
+        const adminPanelBtn = document.getElementById('admin-panel-btn');
+        const banUserBtn = document.getElementById('ban-user-btn');
+        const banUsernameInput = document.getElementById('ban-username');
+        const banDaysInput = document.getElementById('ban-days');
 
         // 格式化日期
         function formatDate(dateString) {
@@ -237,6 +288,7 @@
                                 <p class="text-sm text-gray-500">${formattedDate}</p>
                             </div>
                         </div>
+                        <div class="flex space-x-2">
                 `;
                 
                 if (isOwner || isAdmin) {
@@ -249,7 +301,18 @@
                     `;
                 }
                 
+                if (isAdmin && post.username !== currentUser.username) {
+                    postHTML += `
+                        <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${post.username}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
+                            </svg>
+                        </button>
+                    `;
+                }
+                
                 postHTML += `
+                        </div>
                     </div>
                     <div class="mt-4">
                         <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
@@ -263,7 +326,7 @@
                     post.comments.forEach(comment => {
                         const commentDate = formatDate(comment.timestamp);
                         postHTML += `
-                            <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-start">
                                 <div class="flex items-center">
                                     <div class="h-6 w-6 rounded-full overflow-hidden">
                         `;
@@ -279,9 +342,20 @@
                                     <div class="ml-2">
                                         <span class="font-medium text-gray-800">${comment.username}</span>
                                         <span class="text-xs text-gray-500 ml-2">${commentDate}</span>
+                                        <p class="text-gray-700 mt-1 text-sm">${comment.content}</p>
                                     </div>
                                 </div>
-                                <p class="text-gray-700 mt-1 text-sm">${comment.content}</p>
+                        `;
+                        if (isAdmin && comment.username !== currentUser.username) {
+                            postHTML += `
+                                <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${comment.username}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
+                                    </svg>
+                                </button>
+                            `;
+                        }
+                        postHTML += `
                             </div>
                         `;
                     });
@@ -330,6 +404,14 @@
                     showDeleteConfirmDialog(postId);
                 });
             });
+
+            // 添加禁制用戶按鈕事件
+            document.querySelectorAll('.ban-user-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const username = this.getAttribute('data-username');
+                    showAdminPanel(username);
+                });
+            });
         }
 
         // 顯示刪除確認對話框
@@ -344,6 +426,13 @@
             currentDeletePostId = null;
         }
 
+        // 顯示管理員面板
+        function showAdminPanel(username) {
+            banUsernameInput.value = username;
+            banDaysInput.value = '';
+            adminPanelModal.classList.remove('hidden');
+        }
+
         // 更新 UI 狀態
         function updateUIState() {
             if (currentUser) {
@@ -351,7 +440,11 @@
                 navButtons.classList.add('hidden');
                 userInfo.classList.remove('hidden');
                 usernameDisplay.textContent = currentUser.username;
-                adminPanel.classList.toggle('hidden', !currentUser.isAdmin); // 管理員面板僅對管理員可見
+                if (currentUser.isAdmin) {
+                    adminPanelBtn.classList.remove('hidden');
+                } else {
+                    adminPanelBtn.classList.add('hidden');
+                }
                 updateAvatar();
                 if (currentUser.isBanned) {
                     contentSection.classList.add('hidden');
@@ -366,9 +459,9 @@
                 welcomeSection.classList.remove('hidden');
                 contentSection.classList.add('hidden');
                 bannedSection.classList.add('hidden');
-                adminPanel.classList.add('hidden');
                 navButtons.classList.remove('hidden');
                 userInfo.classList.add('hidden');
+                adminPanelBtn.classList.add('hidden');
             }
         }
 
@@ -379,7 +472,7 @@
             const remainingDays = currentUser.banDays;
             const progress = (remainingDays / totalDays) * 251;
             countdownCircle.style.strokeDashoffset = 251 - progress;
-            countdownDays.textContent = `剩餘 ${remainingDays} 天`;
+            countdownDays.textContent = remainingDays;
             daysCount.textContent = remainingDays;
         }
 
@@ -520,22 +613,20 @@
             }
         });
 
-        socket.on('banUserResponse', (data) => {
-            if (data.success) {
-                alert(data.message);
-                banUsernameInput.value = '';
-                banDaysInput.value = '';
-            } else {
-                alert(data.message);
-            }
-        });
-
         socket.on('simulateBanResponse', (data) => {
             if (data.success) {
                 currentUser.isBanned = true;
                 currentUser.banDays = data.banDays;
                 updateUIState();
                 settingsDropdown.classList.remove('active');
+            }
+        });
+
+        socket.on('banUserResponse', (data) => {
+            if (data.success) {
+                adminPanelModal.classList.add('hidden');
+                alert(data.message);
+                socket.emit('getPosts');
             } else {
                 alert(data.message);
             }
@@ -597,6 +688,11 @@
             });
 
             document.getElementById('profile-btn').addEventListener('click', showProfile);
+
+            document.getElementById('admin-panel-btn').addEventListener('click', () => {
+                showAdminPanel('');
+                settingsDropdown.classList.remove('active');
+            });
 
             document.getElementById('simulate-ban-btn').addEventListener('click', () => {
                 socket.emit('simulateBan');
@@ -682,7 +778,7 @@
                 const targetUsername = banUsernameInput.value.trim();
                 const banDays = parseInt(banDaysInput.value);
                 if (!targetUsername || !banDays || banDays < 1) {
-                    alert('請輸入有效的用戶名和封禁天數');
+                    alert('請輸入有效的用戶名稱和禁制天數');
                     return;
                 }
                 socket.emit('banUser', { adminUsername: currentUser.username, targetUsername, banDays });
