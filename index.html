@@ -391,7 +391,7 @@
 
     <script>
         // 初始化 Socket.IO，指定後端 URL
-        const socket = io('https://zyra-backend-9317.onrender.com'); // 替換為你的 Render 後端 URL
+        const socket = io('https://your-app-name.onrender.com'); // 替換為你的 Render 後端 URL
 
         // 當前登入用戶
         let currentUser = null;
@@ -572,7 +572,7 @@
             currentDeletePostId = null;
         }
 
-        // 更新UI狀態
+        // 更新 UI 狀態
         function updateUIState() {
             if (currentUser) {
                 welcomeSection.classList.add('hidden');
@@ -914,6 +914,12 @@
             passwordTabBtn.addEventListener('click', showPasswordTab);
 
             updateUIState();
+        });
+
+        // Socket.IO 連線錯誤處理
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO 連線錯誤:', error);
+            alert('無法連接到伺服器，請檢查網路或後端服務');
         });
     </script>
 </body>
