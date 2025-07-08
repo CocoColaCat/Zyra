@@ -1,0 +1,1214 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zyra - 向全世界的人發佈內容</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f5ff;
+        }
+        .post-card {
+            transition: transform 0.2s ease;
+        }
+        .post-card:hover {
+            transform: translateY(-3px);
+        }
+        .start-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .start-btn:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transition: left 0.8s;
+        }
+        .start-btn:hover:before {
+            left: 100%;
+        }
+        .settings-dropdown {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 0.5rem;
+            width: 200px;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+        }
+        .settings-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .avatar-container {
+            position: relative;
+            cursor: pointer;
+        }
+        .avatar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .avatar-container:hover .avatar-overlay {
+            opacity: 1;
+        }
+        .avatar-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .tab-active {
+            color: #4f46e5;
+            border-bottom: 2px solid #4f46e5;
+        }
+        .delete-btn {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .post-card:hover .delete-btn {
+            opacity: 1;
+        }
+        .confirm-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            padding: 1.5rem;
+            max-width: 90%;
+            width: 400px;
+        }
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+        }
+        /* 停權相關樣式 */
+        .lock-animation {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+            20%, 80% {
+                transform: translate3d(2px, 0, 0);
+            }
+            30%, 50%, 70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+            40%, 60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+        .countdown {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .countdown svg {
+            transform: rotate(-90deg);
+        }
+        .countdown circle {
+            stroke-dasharray: 251;
+            stroke-dashoffset: 0;
+            stroke-linecap: round;
+            stroke-width: 4;
+            fill: none;
+        }
+        .countdown .bg {
+            stroke: #e5e7eb;
+        }
+        .countdown .progress {
+            stroke: #ef4444;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .countdown-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- 導航欄 -->
+        <nav class="bg-indigo-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-8-3a1 1 0 00-1 1v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    <h1 class="text-xl font-bold">Zyra</h1>
+                </div>
+                <div id="nav-buttons">
+                    <button id="login-nav-btn" class="bg-white text-indigo-600 px-4 py-1 rounded-lg font-medium mr-2 hover:bg-indigo-100 transition">登入</button>
+                    <button id="register-nav-btn" class="bg-indigo-500 text-white px-4 py-1 rounded-lg font-medium border border-indigo-300 hover:bg-indigo-700 transition">註冊</button>
+                </div>
+                <div id="user-info" class="hidden relative">
+                    <div class="flex items-center">
+                        <div id="nav-avatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 overflow-hidden">
+                            <span id="nav-avatar-text"></span>
+                            <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="頭像">
+                        </div>
+                        <span id="username-display" class="mr-3"></span>
+                        <button id="settings-btn" class="bg-indigo-500 text-white px-4 py-1 rounded-lg font-medium border border-indigo-300 hover:bg-indigo-700 transition flex items-center">
+                            <span>設定</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- 設定下拉選單 -->
+                    <div id="settings-dropdown" class="settings-dropdown">
+                        <div class="py-2">
+                            <button id="profile-btn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                </svg>
+                                個人資料
+                            </button>
+                            <button id="simulate-ban-btn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" />
+                                </svg>
+                                模擬停權
+                            </button>
+                            <button id="logout-btn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4a1 1 0 10-2 0v4.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L14 11.586V7z" clip-rule="evenodd" />
+                                </svg>
+                                登出
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主要內容區 -->
+        <div class="container mx-auto px-4 py-8">
+            <!-- 登入前顯示 -->
+            <div id="welcome-section" class="text-center py-12">
+                <h2 class="text-3xl font-bold text-indigo-800 mb-4">歡迎來到分享閣</h2>
+                <p class="text-lg text-gray-600 mb-8">這是一個讓你分享想法和故事的地方</p>
+                <div class="flex flex-col items-center space-y-4">
+                    <button id="start-btn" class="start-btn bg-indigo-600 text-white px-10 py-4 rounded-lg text-lg font-medium hover:bg-indigo-700 transition shadow-lg">開始使用</button>
+                </div>
+            </div>
+
+            <!-- 登入後顯示 -->
+            <div id="content-section" class="hidden">
+                <!-- 發布貼文區域 -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">發布新貼文</h3>
+                    <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-4 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="分享你的想法..."></textarea>
+                    <div class="flex justify-end mt-4">
+                        <button id="post-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">發布</button>
+                    </div>
+                </div>
+
+                <!-- 貼文列表 -->
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">最新貼文</h3>
+                <div id="posts-container" class="space-y-6">
+                    <!-- 貼文將在這裡動態生成 -->
+                </div>
+            </div>
+            
+            <!-- 停權畫面 -->
+            <div id="banned-section" class="hidden">
+                <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+                    <!-- 頂部紅色警告區域 -->
+                    <div class="bg-red-600 text-white p-6 flex items-center">
+                        <div class="mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 lock-animation" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold">帳號已被停權</h1>
+                            <p class="text-red-100">您的帳號因違反社區規範而被暫時停權</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 主要內容區域 -->
+                    <div class="p-6">
+                        <div class="mb-6">
+                            <div class="flex items-center mb-4">
+                                <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">停權原因</h2>
+                                    <p class="text-gray-600">多次發布違反社區規範的內容</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center mb-4">
+                                <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">停權時間</h2>
+                                    <p class="text-gray-600">剩餘 <span id="days-count" class="font-bold text-red-600">7</span> 天</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">停權詳情</h2>
+                                    <p class="text-gray-600">您的帳號因違反我們的社區規範而被暫時停權。在停權期間，您將無法發布貼文或留言。</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 倒計時區域 -->
+                        <div class="flex justify-center mb-6">
+                            <div class="countdown">
+                                <svg width="80" height="80">
+                                    <circle class="bg" cx="40" cy="40" r="36"></circle>
+                                    <circle class="progress" cx="40" cy="40" r="36" id="countdown-circle"></circle>
+                                </svg>
+                                <div class="countdown-text">
+                                    <span id="countdown-days">7</span>
+                                    <div class="text-xs">天</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 底部提示 -->
+                    <div class="bg-gray-50 p-4 border-t">
+                        <p class="text-sm text-gray-600 text-center">如需更多協助，請聯絡 <a href="mailto:support@example.com" class="text-indigo-600 hover:underline">support@example.com</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 註冊彈窗 -->
+        <div id="register-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">註冊新帳號</h3>
+                    <button class="close-modal text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="register-username" class="block text-gray-700 mb-1">使用者名稱</label>
+                        <input type="text" id="register-username" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請設定使用者名稱">
+                    </div>
+                    <div>
+                        <label for="register-email" class="block text-gray-700 mb-1">電子郵件</label>
+                        <input type="email" id="register-email" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入電子郵件">
+                    </div>
+                    <div>
+                        <label for="register-password" class="block text-gray-700 mb-1">密碼</label>
+                        <input type="password" id="register-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請設定密碼">
+                    </div>
+                    <div class="pt-2">
+                        <button id="register-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">註冊</button>
+                    </div>
+                    <p class="text-center text-gray-600 mt-4">已有帳號？ <button id="to-login-btn" class="text-indigo-600 hover:underline">立即登入</button></p>
+                </div>
+                <div class="mt-4 text-center text-sm text-gray-500">
+                    <p>這是一個示範網站，不會實際儲存您的資料</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 登入彈窗 -->
+        <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">登入</h3>
+                    <button class="close-modal text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="login-username" class="block text-gray-700 mb-1">使用者名稱</label>
+                        <input type="text" id="login-username" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入使用者名稱">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-gray-700 mb-1">密碼</label>
+                        <input type="password" id="login-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入密碼">
+                    </div>
+                    <div class="pt-2">
+                        <button id="login-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">登入</button>
+                    </div>
+                    <p class="text-center text-gray-600 mt-4">還沒有帳號？ <button id="to-register-btn" class="text-indigo-600 hover:underline">立即註冊</button></p>
+                </div>
+                <div class="mt-4 text-center text-sm text-gray-500">
+                    <p>這是一個示範網站，不會實際儲存您的資料</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 個人資料彈窗 -->
+        <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">個人資料</h3>
+                    <button class="close-modal text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- 頭像區域 -->
+                <div class="flex flex-col items-center mb-6">
+                    <div class="avatar-container h-24 w-24 mb-4">
+                        <div id="profile-avatar" class="bg-indigo-100 text-indigo-800 font-bold rounded-full h-full w-full flex items-center justify-center text-3xl"></div>
+                        <img id="profile-avatar-img" class="avatar-image hidden" alt="頭像">
+                        <div class="avatar-overlay" id="change-avatar-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                    <input type="file" id="avatar-input" accept="image/*" class="hidden">
+                    <h4 id="profile-username" class="text-xl font-bold text-gray-800"></h4>
+                    <p id="profile-email" class="text-gray-600"></p>
+                </div>
+                
+                <!-- 選項卡 -->
+                <div class="border-b mb-6">
+                    <div class="flex">
+                        <button id="profile-tab-btn" class="px-4 py-2 font-medium tab-active">個人資料</button>
+                        <button id="password-tab-btn" class="px-4 py-2 font-medium text-gray-500">修改密碼</button>
+                    </div>
+                </div>
+                
+                <!-- 個人資料表單 -->
+                <div id="profile-tab" class="space-y-4">
+                    <div>
+                        <label for="update-username" class="block text-gray-700 mb-1">使用者名稱</label>
+                        <input type="text" id="update-username" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="update-email" class="block text-gray-700 mb-1">電子郵件</label>
+                        <input type="email" id="update-email" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    </div>
+                    <div class="pt-2">
+                        <button id="update-profile-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">更新資料</button>
+                    </div>
+                </div>
+                
+                <!-- 修改密碼表單 -->
+                <div id="password-tab" class="space-y-4 hidden">
+                    <div>
+                        <label for="current-password" class="block text-gray-700 mb-1">目前密碼</label>
+                        <input type="password" id="current-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入目前密碼">
+                    </div>
+                    <div>
+                        <label for="new-password" class="block text-gray-700 mb-1">新密碼</label>
+                        <input type="password" id="new-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入新密碼">
+                    </div>
+                    <div>
+                        <label for="confirm-password" class="block text-gray-700 mb-1">確認新密碼</label>
+                        <input type="password" id="confirm-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請再次輸入新密碼">
+                    </div>
+                    <div class="pt-2">
+                        <button id="update-password-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">更新密碼</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 確認刪除對話框 -->
+        <div id="delete-confirm-dialog" class="hidden">
+            <div class="dialog-overlay"></div>
+            <div class="confirm-dialog">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">確認刪除</h3>
+                <p class="text-gray-600 mb-6">確定要刪除這則貼文嗎？此操作無法復原。</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">取消</button>
+                    <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">刪除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模擬用戶數據庫
+        let users = [
+            { 
+                username: 'demo', 
+                email: 'demo@example.com', 
+                password: 'password',
+                avatar: null, // 頭像數據，Base64格式
+                isBanned: false, // 是否被停權
+                banDays: 0 // 停權天數
+            }
+        ];
+        
+        // 模擬貼文數據庫
+        let posts = [
+            { 
+                id: 1, 
+                username: 'demo', 
+                content: '這是一個示範貼文，歡迎來到分享閣！', 
+                timestamp: new Date().toISOString(), 
+                comments: [
+                    { username: 'demo', content: '這是一條示範留言', timestamp: new Date().toISOString() }
+                ] 
+            },
+            { 
+                id: 2, 
+                username: 'demo', 
+                content: '今天天氣真好，分享給大家！', 
+                timestamp: new Date(Date.now() - 86400000).toISOString(), 
+                comments: [] 
+            }
+        ];
+
+        // 當前登入用戶
+        let currentUser = null;
+        
+        // 當前要刪除的貼文ID
+        let currentDeletePostId = null;
+
+        // DOM 元素
+        const loginModal = document.getElementById('login-modal');
+        const registerModal = document.getElementById('register-modal');
+        const profileModal = document.getElementById('profile-modal');
+        const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
+        const welcomeSection = document.getElementById('welcome-section');
+        const contentSection = document.getElementById('content-section');
+        const bannedSection = document.getElementById('banned-section');
+        const navButtons = document.getElementById('nav-buttons');
+        const userInfo = document.getElementById('user-info');
+        const usernameDisplay = document.getElementById('username-display');
+        const postsContainer = document.getElementById('posts-container');
+        const settingsDropdown = document.getElementById('settings-dropdown');
+        const profileTab = document.getElementById('profile-tab');
+        const passwordTab = document.getElementById('password-tab');
+        const profileTabBtn = document.getElementById('profile-tab-btn');
+        const passwordTabBtn = document.getElementById('password-tab-btn');
+        const navAvatarText = document.getElementById('nav-avatar-text');
+        const navAvatarImg = document.getElementById('nav-avatar-img');
+        const profileAvatar = document.getElementById('profile-avatar');
+        const profileAvatarImg = document.getElementById('profile-avatar-img');
+        const avatarInput = document.getElementById('avatar-input');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const countdownCircle = document.getElementById('countdown-circle');
+        const countdownDays = document.getElementById('countdown-days');
+        const daysCount = document.getElementById('days-count');
+
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // 顯示貼文
+        function renderPosts() {
+            postsContainer.innerHTML = '';
+            posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            posts.forEach(post => {
+                const formattedDate = formatDate(post.timestamp);
+                const user = users.find(u => u.username === post.username);
+                const hasAvatar = user && user.avatar;
+                const isOwner = currentUser && currentUser.username === post.username;
+                
+                const postElement = document.createElement('div');
+                postElement.className = 'bg-white rounded-xl shadow-md p-6 post-card';
+                postElement.setAttribute('data-post-id', post.id);
+                
+                // 貼文內容
+                let postHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-full overflow-hidden">
+                `;
+                
+                // 顯示頭像或默認字母
+                if (hasAvatar) {
+                    postHTML += `<img src="${user.avatar}" class="h-full w-full object-cover" alt="${post.username}的頭像">`;
+                } else {
+                    postHTML += `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">
+                                    ${post.username.charAt(0).toUpperCase()}
+                                </div>`;
+                }
+                
+                postHTML += `
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="font-bold text-gray-800">${post.username}</h4>
+                                <p class="text-sm text-gray-500">${formattedDate}</p>
+                            </div>
+                        </div>
+                `;
+                
+                // 如果是貼文擁有者，顯示刪除按鈕
+                if (isOwner) {
+                    postHTML += `
+                        <button class="delete-post-btn delete-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    `;
+                }
+                
+                postHTML += `
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
+                    </div>
+                `;
+                
+                // 留言區域
+                postHTML += `
+                    <div class="mt-6 border-t pt-4">
+                        <h5 class="font-bold text-gray-700 mb-2">留言 (${post.comments.length})</h5>
+                        <div class="space-y-3 mb-4 comments-container-${post.id}">
+                `;
+                
+                // 顯示留言
+                post.comments.forEach(comment => {
+                    const commentDate = formatDate(comment.timestamp);
+                    const commentUser = users.find(u => u.username === comment.username);
+                    const commentHasAvatar = commentUser && commentUser.avatar;
+                    
+                    postHTML += `
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="h-6 w-6 rounded-full overflow-hidden">
+                    `;
+                    
+                    // 顯示留言者頭像或默認字母
+                    if (commentHasAvatar) {
+                        postHTML += `<img src="${commentUser.avatar}" class="h-full w-full object-cover" alt="${comment.username}的頭像">`;
+                    } else {
+                        postHTML += `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center text-xs">
+                                        ${comment.username.charAt(0).toUpperCase()}
+                                    </div>`;
+                    }
+                    
+                    postHTML += `
+                                </div>
+                                <div class="ml-2">
+                                    <span class="font-medium text-gray-800">${comment.username}</span>
+                                    <span class="text-xs text-gray-500 ml-2">${commentDate}</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-700 mt-1 text-sm">${comment.content}</p>
+                        </div>
+                    `;
+                });
+                
+                // 添加留言輸入框
+                postHTML += `
+                        </div>
+                        <div class="flex">
+                            <input type="text" class="comment-input flex-grow border border-gray-300 rounded-l-lg p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="添加留言...">
+                            <button class="add-comment-btn bg-indigo-600 text-white px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發送</button>
+                        </div>
+                    </div>
+                `;
+                
+                postElement.innerHTML = postHTML;
+                postsContainer.appendChild(postElement);
+            });
+
+            // 添加留言功能
+            document.querySelectorAll('.add-comment-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (!currentUser) {
+                        alert('請先登入才能留言');
+                        return;
+                    }
+                    
+                    if (currentUser.isBanned) {
+                        alert('您的帳號已被停權，無法留言');
+                        return;
+                    }
+                    
+                    const postId = parseInt(this.getAttribute('data-post-id'));
+                    const commentInput = this.previousElementSibling;
+                    const content = commentInput.value.trim();
+                    
+                    if (!content) {
+                        alert('請輸入留言內容');
+                        return;
+                    }
+                    
+                    const post = posts.find(p => p.id === postId);
+                    if (post) {
+                        const newComment = {
+                            username: currentUser.username,
+                            content: content,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        post.comments.push(newComment);
+                        commentInput.value = '';
+                        
+                        // 更新留言區域
+                        renderPosts(); // 重新渲染所有貼文以更新留言
+                    }
+                });
+            });
+            
+            // 添加刪除貼文功能
+            document.querySelectorAll('.delete-post-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const postId = parseInt(this.getAttribute('data-post-id'));
+                    showDeleteConfirmDialog(postId);
+                });
+            });
+        }
+
+        // 顯示刪除確認對話框
+        function showDeleteConfirmDialog(postId) {
+            currentDeletePostId = postId;
+            deleteConfirmDialog.classList.remove('hidden');
+        }
+
+        // 隱藏刪除確認對話框
+        function hideDeleteConfirmDialog() {
+            deleteConfirmDialog.classList.add('hidden');
+            currentDeletePostId = null;
+        }
+
+        // 刪除貼文
+        function deletePost() {
+            if (currentDeletePostId) {
+                const postIndex = posts.findIndex(p => p.id === currentDeletePostId);
+                if (postIndex !== -1) {
+                    // 確保只有貼文擁有者可以刪除
+                    if (posts[postIndex].username === currentUser.username) {
+                        posts.splice(postIndex, 1);
+                        renderPosts();
+                        hideDeleteConfirmDialog();
+                        alert('貼文已成功刪除！');
+                    } else {
+                        alert('您沒有權限刪除此貼文');
+                        hideDeleteConfirmDialog();
+                    }
+                }
+            }
+        }
+
+        // 更新UI狀態
+        function updateUIState() {
+            if (currentUser) {
+                welcomeSection.classList.add('hidden');
+                navButtons.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                usernameDisplay.textContent = currentUser.username;
+                
+                // 更新導航欄頭像
+                updateAvatar();
+                
+                // 檢查用戶是否被停權
+                if (currentUser.isBanned) {
+                    contentSection.classList.add('hidden');
+                    bannedSection.classList.remove('hidden');
+                    updateBanCountdown();
+                } else {
+                    contentSection.classList.remove('hidden');
+                    bannedSection.classList.add('hidden');
+                    renderPosts();
+                }
+            } else {
+                welcomeSection.classList.remove('hidden');
+                contentSection.classList.add('hidden');
+                bannedSection.classList.add('hidden');
+                navButtons.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+            }
+        }
+
+        // 更新停權倒計時
+        function updateBanCountdown() {
+            if (!currentUser || !currentUser.isBanned) return;
+            
+            const totalDays = 7; // 假設停權7天
+            const remainingDays = currentUser.banDays;
+            
+            // 更新倒計時圓環
+            const progress = (remainingDays / totalDays) * 251; // 圓環周長為251
+            countdownCircle.style.strokeDashoffset = 251 - progress;
+            countdownDays.textContent = remainingDays;
+            daysCount.textContent = remainingDays;
+        }
+
+        // 更新頭像顯示
+        function updateAvatar() {
+            if (currentUser && currentUser.avatar) {
+                // 導航欄頭像
+                navAvatarText.classList.add('hidden');
+                navAvatarImg.src = currentUser.avatar;
+                navAvatarImg.classList.remove('hidden');
+                
+                // 個人資料頭像
+                profileAvatar.classList.add('hidden');
+                profileAvatarImg.src = currentUser.avatar;
+                profileAvatarImg.classList.remove('hidden');
+            } else {
+                // 導航欄頭像
+                navAvatarText.textContent = currentUser.username.charAt(0).toUpperCase();
+                navAvatarText.classList.remove('hidden');
+                navAvatarImg.classList.add('hidden');
+                
+                // 個人資料頭像
+                profileAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+                profileAvatar.classList.remove('hidden');
+                profileAvatarImg.classList.add('hidden');
+            }
+        }
+
+        // 登入功能
+        function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!username || !password) {
+                alert('請填寫所有欄位');
+                return;
+            }
+            
+            const user = users.find(u => u.username === username && u.password === password);
+            if (user) {
+                currentUser = user;
+                loginModal.classList.add('hidden');
+                updateUIState();
+                alert('登入成功！');
+            } else {
+                alert('使用者名稱或密碼錯誤');
+            }
+        }
+
+        // 註冊功能
+        function register() {
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            
+            if (!username || !email || !password) {
+                alert('請填寫所有欄位');
+                return;
+            }
+            
+            if (users.some(u => u.username === username)) {
+                alert('此使用者名稱已被使用');
+                return;
+            }
+            
+            if (users.some(u => u.email === email)) {
+                alert('此電子郵件已被使用');
+                return;
+            }
+            
+            const newUser = { 
+                username, 
+                email, 
+                password,
+                avatar: null,
+                isBanned: false,
+                banDays: 0
+            };
+            users.push(newUser);
+            currentUser = newUser;
+            registerModal.classList.add('hidden');
+            updateUIState();
+            alert('註冊成功！');
+        }
+
+        // 發布貼文
+        function createPost() {
+            const content = document.getElementById('post-content').value.trim();
+            
+            if (!content) {
+                alert('請輸入貼文內容');
+                return;
+            }
+            
+            if (currentUser.isBanned) {
+                alert('您的帳號已被停權，無法發布貼文');
+                return;
+            }
+            
+            const newPost = {
+                id: posts.length > 0 ? Math.max(...posts.map(p => p.id)) + 1 : 1,
+                username: currentUser.username,
+                content: content,
+                timestamp: new Date().toISOString(),
+                comments: []
+            };
+            
+            posts.unshift(newPost);
+            document.getElementById('post-content').value = '';
+            renderPosts();
+        }
+
+        // 顯示個人資料
+        function showProfile() {
+            if (currentUser) {
+                // 更新頭像
+                updateAvatar();
+                
+                // 更新個人資料表單
+                document.getElementById('profile-username').textContent = currentUser.username;
+                document.getElementById('profile-email').textContent = currentUser.email;
+                document.getElementById('update-username').value = currentUser.username;
+                document.getElementById('update-email').value = currentUser.email;
+                
+                // 重置密碼表單
+                document.getElementById('current-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                
+                // 顯示個人資料選項卡
+                showProfileTab();
+                
+                profileModal.classList.remove('hidden');
+                settingsDropdown.classList.remove('active');
+            }
+        }
+
+        // 顯示個人資料選項卡
+        function showProfileTab() {
+            profileTab.classList.remove('hidden');
+            passwordTab.classList.add('hidden');
+            profileTabBtn.classList.add('tab-active');
+            profileTabBtn.classList.remove('text-gray-500');
+            passwordTabBtn.classList.remove('tab-active');
+            passwordTabBtn.classList.add('text-gray-500');
+        }
+
+        // 顯示密碼選項卡
+        function showPasswordTab() {
+            profileTab.classList.add('hidden');
+            passwordTab.classList.remove('hidden');
+            profileTabBtn.classList.remove('tab-active');
+            profileTabBtn.classList.add('text-gray-500');
+            passwordTabBtn.classList.add('tab-active');
+            passwordTabBtn.classList.remove('text-gray-500');
+        }
+
+        // 更新個人資料
+        function updateProfile() {
+            const newUsername = document.getElementById('update-username').value.trim();
+            const newEmail = document.getElementById('update-email').value.trim();
+            
+            if (!newUsername || !newEmail) {
+                alert('請填寫所有欄位');
+                return;
+            }
+            
+            // 檢查用戶名是否已被使用（排除當前用戶）
+            if (newUsername !== currentUser.username && users.some(u => u.username === newUsername)) {
+                alert('此使用者名稱已被使用');
+                return;
+            }
+            
+            // 檢查電子郵件是否已被使用（排除當前用戶）
+            if (newEmail !== currentUser.email && users.some(u => u.email === newEmail)) {
+                alert('此電子郵件已被使用');
+                return;
+            }
+            
+            // 更新用戶資料
+            const oldUsername = currentUser.username;
+            currentUser.username = newUsername;
+            currentUser.email = newEmail;
+            
+            // 更新用戶在users數組中的資料
+            const userIndex = users.findIndex(u => u.username === oldUsername);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+            }
+            
+            // 更新貼文和留言中的用戶名
+            posts.forEach(post => {
+                if (post.username === oldUsername) {
+                    post.username = newUsername;
+                }
+                post.comments.forEach(comment => {
+                    if (comment.username === oldUsername) {
+                        comment.username = newUsername;
+                    }
+                });
+            });
+            
+            // 更新UI
+            updateUIState();
+            profileModal.classList.add('hidden');
+            alert('個人資料已更新！');
+        }
+
+        // 更新密碼
+        function updatePassword() {
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                alert('請填寫所有欄位');
+                return;
+            }
+            
+            if (currentPassword !== currentUser.password) {
+                alert('目前密碼不正確');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('新密碼與確認密碼不符');
+                return;
+            }
+            
+            // 更新密碼
+            currentUser.password = newPassword;
+            
+            // 更新用戶在users數組中的資料
+            const userIndex = users.findIndex(u => u.username === currentUser.username);
+            if (userIndex !== -1) {
+                users[userIndex].password = newPassword;
+            }
+            
+            // 清空表單
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            
+            alert('密碼已成功更新！');
+        }
+
+        // 處理頭像上傳
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 檢查文件類型
+            if (!file.type.match('image.*')) {
+                alert('請選擇圖片文件');
+                return;
+            }
+            
+            // 檢查文件大小（限制為2MB）
+            if (file.size > 2 * 1024 * 1024) {
+                alert('圖片大小不能超過2MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 將圖片轉換為Base64格式
+                const base64Image = e.target.result;
+                
+                // 更新用戶頭像
+                currentUser.avatar = base64Image;
+                
+                // 更新用戶在users數組中的資料
+                const userIndex = users.findIndex(u => u.username === currentUser.username);
+                if (userIndex !== -1) {
+                    users[userIndex].avatar = base64Image;
+                }
+                
+                // 更新頭像顯示
+                updateAvatar();
+                
+                // 重新渲染貼文以更新頭像
+                renderPosts();
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // 切換設定下拉選單
+        function toggleSettingsDropdown() {
+            settingsDropdown.classList.toggle('active');
+        }
+
+        // 關閉設定下拉選單（點擊外部區域時）
+        function closeSettingsDropdown(event) {
+            if (!event.target.closest('#settings-btn') && !event.target.closest('#settings-dropdown')) {
+                settingsDropdown.classList.remove('active');
+            }
+        }
+        
+        // 模擬停權
+        function simulateBan() {
+            if (currentUser) {
+                currentUser.isBanned = true;
+                currentUser.banDays = 7;
+                
+                // 更新用戶在users數組中的資料
+                const userIndex = users.findIndex(u => u.username === currentUser.username);
+                if (userIndex !== -1) {
+                    users[userIndex].isBanned = true;
+                    users[userIndex].banDays = 7;
+                }
+                
+                // 更新UI
+                updateUIState();
+                settingsDropdown.classList.remove('active');
+            }
+        }
+
+        // 事件監聽器
+        document.addEventListener('DOMContentLoaded', function() {
+            // 開始使用按鈕
+            document.getElementById('start-btn').addEventListener('click', () => {
+                registerModal.classList.remove('hidden');
+            });
+            
+            // 登入按鈕
+            document.getElementById('login-nav-btn').addEventListener('click', () => {
+                loginModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('login-btn').addEventListener('click', login);
+            
+            // 註冊按鈕
+            document.getElementById('register-nav-btn').addEventListener('click', () => {
+                registerModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('register-btn').addEventListener('click', register);
+            
+            // 模態框切換
+            document.getElementById('to-register-btn').addEventListener('click', () => {
+                loginModal.classList.add('hidden');
+                registerModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('to-login-btn').addEventListener('click', () => {
+                registerModal.classList.add('hidden');
+                loginModal.classList.remove('hidden');
+            });
+            
+            // 關閉模態框
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.fixed').classList.add('hidden');
+                });
+            });
+            
+            // 設定按鈕
+            document.getElementById('settings-btn').addEventListener('click', toggleSettingsDropdown);
+            
+            // 個人資料按鈕
+            document.getElementById('profile-btn').addEventListener('click', showProfile);
+            
+            // 模擬停權按鈕
+            document.getElementById('simulate-ban-btn').addEventListener('click', simulateBan);
+            
+            // 更新個人資料按鈕
+            document.getElementById('update-profile-btn').addEventListener('click', updateProfile);
+            
+            // 更新密碼按鈕
+            document.getElementById('update-password-btn').addEventListener('click', updatePassword);
+            
+            // 選項卡切換
+            profileTabBtn.addEventListener('click', showProfileTab);
+            passwordTabBtn.addEventListener('click', showPasswordTab);
+            
+            // 頭像上傳
+            document.getElementById('change-avatar-btn').addEventListener('click', () => {
+                avatarInput.click();
+            });
+            
+            avatarInput.addEventListener('change', handleAvatarUpload);
+            
+            // 登出按鈕
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                currentUser = null;
+                updateUIState();
+                settingsDropdown.classList.remove('active');
+                alert('已成功登出');
+            });
+            
+            // 發布貼文按鈕
+            document.getElementById('post-btn').addEventListener('click', createPost);
+            
+            // 確認刪除按鈕
+            confirmDeleteBtn.addEventListener('click', deletePost);
+            
+            // 取消刪除按鈕
+            cancelDeleteBtn.addEventListener('click', hideDeleteConfirmDialog);
+            
+            // 點擊外部區域關閉設定下拉選單
+            document.addEventListener('click', closeSettingsDropdown);
+            
+            // 點擊對話框背景關閉對話框
+            document.querySelector('.dialog-overlay').addEventListener('click', hideDeleteConfirmDialog);
+            
+            // 鎖定動畫效果
+            const lockIcon = document.querySelector('.lock-animation');
+            if (lockIcon) {
+                setInterval(() => {
+                    lockIcon.classList.add('lock-animation');
+                    setTimeout(() => {
+                        lockIcon.classList.remove('lock-animation');
+                    }, 500);
+                }, 5000);
+            }
+            
+            // 初始化UI
+            updateUIState();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'95bdb143c29e8458',t:'MTc1MTk1Nzg5OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
