@@ -7,207 +7,539 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .modal {
-            background: rgba(0, 0, 0, 0.5);
-        }
-        .modal-content {
-            max-width: 400px;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f5ff;
         }
         .post-card {
-            margin-bottom: 1.5rem;
+            transition: transform 0.2s ease;
+        }
+        .post-card:hover {
+            transform: translateY(-3px);
+        }
+        .start-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .start-btn:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transition: left 0.8s;
+        }
+        .start-btn:hover:before {
+            left: 100%;
+        }
+        .settings-dropdown {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 0.5rem;
+            width: 200px;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+        }
+        .settings-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .avatar-container {
+            position: relative;
+            cursor: pointer;
+        }
+        .avatar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .avatar-container:hover .avatar-overlay {
+            opacity: 1;
+        }
+        .avatar-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
         .tab-active {
             color: #4f46e5;
             border-bottom: 2px solid #4f46e5;
         }
-        .dropdown-content {
-            display: none;
+        .delete-btn, .ban-btn {
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
-        .dropdown-content.active {
-            display: block;
+        .post-card:hover .delete-btn, .post-card:hover .ban-btn {
+            opacity: 1;
+        }
+        .confirm-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            padding: 1.5rem;
+            max-width: 90%;
+            width: 400px;
+        }
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 40;
         }
         .lock-animation {
-            animation: shake 0.5s;
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
         @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+            10%, 90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+            20%, 80% {
+                transform: translate3d(2px, 0, 0);
+            }
+            30%, 50%, 70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+            40%, 60% {
+                transform: translate3d(4px, 0, 0);
+            }
         }
-        .hidden {
-            display: none;
+        .countdown {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .countdown svg {
+            transform: rotate(-90deg);
+        }
+        .countdown circle {
+            stroke-dasharray: 251;
+            stroke-dashoffset: 0;
+            stroke-linecap: round;
+            stroke-width: 4;
+            fill: none;
+        }
+        .countdown .bg {
+            stroke: #e5e7eb;
+        }
+        .countdown .progress {
+            stroke: #ef4444;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .countdown-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-weight: bold;
+        }
+        .input-error {
+            border-color: #ef4444 !important;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .shake-animation {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
     </style>
 </head>
 <body>
-    <!-- 歡迎區塊 -->
-    <div id="welcome-section" class="min-h-screen flex items-center justify-center">
-        <div class="text-center">
-            <h1 class="text-5xl font-bold text-gray-800 mb-6">Zyra</h1>
-            <p class="text-lg text-gray-600 mb-8">分享你的想法，與世界連結</p>
-            <button id="start-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">開始使用</button>
-        </div>
-    </div>
-
-    <!-- 導航列 -->
-    <nav class="bg-white shadow p-4 sticky top-0 z-10">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-800">Zyra</h1>
-            <div id="nav-buttons" class="space-x-4">
-                <button id="login-nav-btn" class="text-indigo-600 hover:text-indigo-800">登入</button>
-                <button id="register-nav-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
-            </div>
-            <div id="user-info" class="hidden relative">
-                <div class="flex items-center space-x-3">
-                    <div id="nav-avatar" class="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center bg-indigo-100">
-                        <span id="nav-avatar-text" class="text-indigo-800 font-bold"></span>
-                        <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="用戶頭像">
+    <div id="app" class="min-h-screen">
+        <!-- 導航欄 -->
+        <nav class="bg-indigo-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-8-3a1 1 0 00-1 1v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    <h1 class="text-xl font-bold">Zyra</h1>
+                </div>
+                <div id="nav-buttons">
+                    <button id="login-nav-btn" class="bg-white text-indigo-600 px-4 py-1 rounded-lg font-medium mr-2 hover:bg-indigo-100 transition">登入</button>
+                    <button id="register-nav-btn" class="bg-indigo-500 text-white px-4 py-1 rounded-lg font-medium border border-indigo-300 hover:bg-indigo-700 transition">註冊</button>
+                </div>
+                <div id="user-info" class="hidden relative">
+                    <div class="flex items-center">
+                        <div id="nav-avatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 overflow-hidden">
+                            <span id="nav-avatar-text"></span>
+                            <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="頭像">
+                        </div>
+                        <span id="username-display" class="mr-3"></span>
+                        <button id="settings-btn" class="bg-indigo-500 text-white px-4 py-1 rounded-lg font-medium border border-indigo-300 hover:bg-indigo-700 transition flex items-center">
+                            <span>設定</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
                     </div>
-                    <span id="username-display" class="font-medium text-gray-800"></span>
-                    <button id="settings-btn" class="text-gray-600 hover:text-gray-800">
+                    <!-- 設定下拉選單 -->
+                    <div id="settings-dropdown" class="settings-dropdown">
+                        <div class="py-2">
+                            <button id="profile-btn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                </svg>
+                                個人資料
+                            </button>
+                            <button id="admin-panel-btn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center hidden">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-1 1v7a1 1 0 001 1h10a1 1 0 001-1V8a1 1 0 00-1-1h-1V6a4 4 0 00-4-4zm3 5H7v1h6V7z" clip-rule="evenodd" />
+                                </svg>
+                                管理員面板
+                            </button>
+                            <button id="simulate-ban-btn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" />
+                                </svg>
+                                模擬停權
+                            </button>
+                            <button id="logout-btn" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4a1 1 0 10-2 0v4.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L14 11.586V7z" clip-rule="evenodd" />
+                                </svg>
+                                登出
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主要內容區 -->
+        <div class="container mx-auto px-4 py-8">
+            <!-- 登入前顯示 -->
+            <div id="welcome-section" class="text-center py-12">
+                <h2 class="text-3xl font-bold text-indigo-800 mb-4">歡迎來到分享閣</h2>
+                <p class="text-lg text-gray-600 mb-8">這是一個讓你分享想法和故事的地方</p>
+                <div class="flex flex-col items-center space-y-4">
+                    <button id="start-btn" class="start-btn bg-indigo-600 text-white px-10 py-4 rounded-lg text-lg font-medium hover:bg-indigo-700 transition shadow-lg">開始使用</button>
+                </div>
+            </div>
+
+            <!-- 登入後顯示 -->
+            <div id="content-section" class="hidden">
+                <!-- 發布貼文區域 -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">發布新貼文</h3>
+                    <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-4 h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="分享你的想法..."></textarea>
+                    <div class="flex justify-end mt-4">
+                        <button id="post-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">發布</button>
+                    </div>
+                </div>
+
+                <!-- 貼文列表 -->
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">最新貼文</h3>
+                <div id="posts-container" class="space-y-6">
+                    <!-- 貼文將在這裡動態生成 -->
+                </div>
+            </div>
+            
+            <!-- 停權畫面 -->
+            <div id="banned-section" class="hidden">
+                <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+                    <!-- 頂部紅色警告區域 -->
+                    <div class="bg-red-600 text-white p-6 flex items-center">
+                        <div class="mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 lock-animation" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold">帳號已被停權</h1>
+                            <p class="text-red-100">您的帳號因違反社區規範而被暫時停權</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 主要內容區域 -->
+                    <div class="p-6">
+                        <div class="mb-6">
+                            <div class="flex items-center mb-4">
+                                <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">停權原因</h2>
+                                    <p class="text-gray-600">多次發布違反社區規範的內容</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center mb-4">
+                                <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">停權時間</h2>
+                                    <p class="text-gray-600">剩餘 <span id="days-count" class="font-bold text-red-600">7</span> 天</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">停權詳情</h2>
+                                    <p class="text-gray-600">您的帳號因違反我們的社區規範而被暫時停權。在停權期間，您將無法發布貼文或留言。</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 倒計時區域 -->
+                        <div class="flex justify-center mb-6">
+                            <div class="countdown">
+                                <svg width="80" height="80">
+                                    <circle class="bg" cx="40" cy="40" r="36"></circle>
+                                    <circle class="progress" cx="40" cy="40" r="36" id="countdown-circle"></circle>
+                                </svg>
+                                <div class="countdown-text">
+                                    <span id="countdown-days">7</span>
+                                    <div class="text-xs">天</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 底部提示 -->
+                    <div class="bg-gray-50 p-4 border-t">
+                        <p class="text-sm text-gray-600 text-center">如需更多協助，請聯絡 <a href="mailto:support@example.com" class="text-indigo-600 hover:underline">support@example.com</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 註冊彈窗 -->
+        <div id="register-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">註冊新帳號</h3>
+                    <button class="close-modal text-gray-500 hover:text-gray-700">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
-                <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-2">
-                    <button id="profile-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">個人資料</button>
-                    <button id="admin-panel-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hidden">管理員面板</button>
-                    <button id="simulate-ban-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">模擬停權</button>
-                    <button id="logout-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">登出</button>
+                <div class="space-y-4">
+                    <div>
+                        <label for="register-username" class="block text-gray-700 mb-1">使用者名稱</label>
+                        <input type="text" id="register-username" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請設定使用者名稱">
+                        <p id="register-username-error" class="error-message hidden">請輸入使用者名稱</p>
+                    </div>
+                    <div>
+                        <label for="register-email" class="block text-gray-700 mb-1">電子郵件</label>
+                        <input type="email" id="register-email" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入電子郵件">
+                        <p id="register-email-error" class="error-message hidden">請輸入有效的電子郵件</p>
+                    </div>
+                    <div>
+                        <label for="register-password" class="block text-gray-700 mb-1">密碼</label>
+                        <input type="password" id="register-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="最多6個字元，需含英文和數字">
+                        <p id="register-password-error" class="error-message hidden">請輸入密碼</p>
+                    </div>
+                    <div class="pt-2">
+                        <button id="register-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">註冊</button>
+                    </div>
+                    <p class="text-center text-gray-600 mt-4">已有帳號？ <button id="to-login-btn" class="text-indigo-600 hover:underline">立即登入</button></p>
+                </div>
+                <div class="mt-4 text-center text-sm text-gray-500">
+                    <p>這是一個示範網站，不會實際儲存您的資料</p>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <!-- 內容區塊 -->
-    <div id="content-section" class="max-w-4xl mx-auto py-6 hidden">
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="分享你的想法..."></textarea>
-            <div class="flex justify-end mt-3">
-                <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">發布</button>
-            </div>
-        </div>
-        <div id="posts-container" class="space-y-6"></div>
-    </div>
-
-    <!-- 停權區塊 -->
-    <div id="banned-section" class="min-h-screen flex items-center justify-center hidden">
-        <div class="text-center">
-            <svg class="lock-animation mx-auto h-16 w-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v4c0 1.104.896 2 2 2h2c1.104 0 2-.896 2-2v-2m2-6h6m-6 0v6m0-6V5c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v2" />
-            </svg>
-            <h2 class="text-2xl font-bold text-gray-800 mt-4">您的帳號已被停權</h2>
-            <p class="text-gray-600 mt-2">剩餘 <span id="days-count">0</span> 天</p>
-            <svg class="mx-auto mt-4" width="100" height="100">
-                <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none" />
-                <circle id="countdown-circle" cx="50" cy="50" r="40" stroke="#ef4444" stroke-width="8" fill="none" stroke-dasharray="251" stroke-dashoffset="0" />
-                <text id="countdown-days" x="50" y="55" text-anchor="middle" font-size="20" fill="#1f2937">0</text>
-            </svg>
-        </div>
-    </div>
-
-    <!-- 登入模態框 -->
-    <div id="login-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">登入</h2>
-            <input id="login-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱">
-            <input id="login-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼">
-            <button id="login-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">登入</button>
-            <p class="mt-4 text-center text-gray-600">還沒有帳號？ <button id="to-register-btn" class="text-indigo-600 hover:underline">註冊</button></p>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <!-- 註冊模態框 -->
-    <div id="register-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">註冊</h2>
-            <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱">
-            <input id="register-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="電子郵件">
-            <input id="register-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼">
-            <button id="register-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
-            <p class="mt-4 text-center text-gray-600">已有帳號？ <button id="to-login-btn" class="text-indigo-600 hover:underline">登入</button></p>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <!-- 個人資料模態框 -->
-    <div id="profile-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">個人資料</h2>
-            <div class="flex mb-4">
-                <button id="profile-tab-btn" class="tab-active px-4 py-2 text-indigo-600 font-medium">個人資料</button>
-                <button id="password-tab-btn" class="px-4 py-2 text-gray-500">更改密碼</button>
-            </div>
-            <div id="profile-tab">
-                <div class="flex items-center mb-4">
-                    <div id="profile-avatar" class="h-12 w-12 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center"></div>
-                    <img id="profile-avatar-img" class="h-12 w-12 rounded-full object-cover hidden" alt="用戶頭像">
-                    <button id="change-avatar-btn" class="ml-4 text-indigo-600 hover:underline">更改頭像</button>
-                    <input id="avatar-input" type="file" accept="image/*" class="hidden">
+        <!-- 登入彈窗 -->
+        <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">登入</h3>
+                    <button class="close-modal text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <p class="text-gray-700 mb-2">使用者名稱: <span id="profile-username"></span></p>
-                <p class="text-gray-700 mb-4">電子郵件: <span id="profile-email"></span></p>
-                <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱">
-                <input id="update-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新電子郵件">
-                <button id="update-profile-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更新資料</button>
+                <div class="space-y-4">
+                    <div>
+                        <label for="login-input" class="block text-gray-700 mb-1">使用者名稱或電子郵件</label>
+                        <input type="text" id="login-input" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入使用者名稱或電子郵件">
+                        <p id="login-input-error" class="error-message hidden">請輸入使用者名稱或電子郵件</p>
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-gray-700 mb-1">密碼</label>
+                        <input type="password" id="login-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入密碼">
+                        <p id="login-password-error" class="error-message hidden">請輸入密碼</p>
+                    </div>
+                    <div class="pt-2">
+                        <button id="login-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">登入</button>
+                    </div>
+                    <p class="text-center text-gray-600 mt-4">還沒有帳號？ <button id="to-register-btn" class="text-indigo-600 hover:underline">立即註冊</button></p>
+                </div>
+                <div class="mt-4 text-center text-sm text-gray-500">
+                    <p>這是一個示範網站，不會實際儲存您的資料</p>
+                </div>
             </div>
-            <div id="password-tab" class="hidden">
-                <input id="current-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="目前密碼">
-                <input id="new-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新密碼">
-                <input id="confirm-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="確認新密碼">
-                <button id="update-password-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更改密碼</button>
+        </div>
+
+        <!-- 個人資料彈窗 -->
+        <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">個人資料</h3>
+                    <button class="close-modal text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- 頭像區域 -->
+                <div class="flex flex-col items-center mb-6">
+                    <div class="avatar-container h-24 w-24 mb-4">
+                        <div id="profile-avatar" class="bg-indigo-100 text-indigo-800 font-bold rounded-full h-full w-full flex items-center justify-center text-3xl"></div>
+                        <img id="profile-avatar-img" class="avatar-image hidden" alt="頭像">
+                        <div class="avatar-overlay" id="change-avatar-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                    <input type="file" id="avatar-input" accept="image/*" class="hidden">
+                    <h4 id="profile-username" class="text-xl font-bold text-gray-800"></h4>
+                    <p id="profile-email" class="text-gray-600"></p>
+                </div>
+                
+                <!-- 選項卡 -->
+                <div class="border-b mb-6">
+                    <div class="flex">
+                        <button id="profile-tab-btn" class="px-4 py-2 font-medium tab-active">個人資料</button>
+                        <button id="password-tab-btn" class="px-4 py-2 font-medium text-gray-500">修改密碼</button>
+                    </div>
+                </div>
+                
+                <!-- 個人資料表單 -->
+                <div id="profile-tab" class="space-y-4">
+                    <div>
+                        <label for="update-username" class="block text-gray-700 mb-1">使用者名稱</label>
+                        <input type="text" id="update-username" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <p id="update-username-error" class="error-message hidden">請輸入使用者名稱</p>
+                    </div>
+                    <div>
+                        <label for="update-email" class="block text-gray-700 mb-1">電子郵件</label>
+                        <input type="email" id="update-email" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <p id="update-email-error" class="error-message hidden">請輸入有效的電子郵件</p>
+                    </div>
+                    <div class="pt-2">
+                        <button id="update-profile-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">更新資料</button>
+                    </div>
+                </div>
+                
+                <!-- 修改密碼表單 -->
+                <div id="password-tab" class="space-y-4 hidden">
+                    <div>
+                        <label for="current-password" class="block text-gray-700 mb-1">目前密碼</label>
+                        <input type="password" id="current-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請輸入目前密碼">
+                        <p id="current-password-error" class="error-message hidden">請輸入目前密碼</p>
+                    </div>
+                    <div>
+                        <label for="new-password" class="block text-gray-700 mb-1">新密碼</label>
+                        <input type="password" id="new-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="最多6個字元，需含英文和數字">
+                        <p id="new-password-error" class="error-message hidden">請輸入新密碼</p>
+                    </div>
+                    <div>
+                        <label for="confirm-password" class="block text-gray-700 mb-1">確認新密碼</label>
+                        <input type="password" id="confirm-password" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="請再次輸入新密碼">
+                        <p id="confirm-password-error" class="error-message hidden">請再次輸入新密碼</p>
+                    </div>
+                    <div class="pt-2">
+                        <button id="update-password-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">更新密碼</button>
+                    </div>
+                </div>
             </div>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
         </div>
-    </div>
 
-    <!-- 管理員面板模態框 -->
-    <div id="admin-panel-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員面板</h2>
-            <input id="ban-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="要禁制的用戶名稱">
-            <input id="ban-days" type="number" min="1" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="禁制天數">
-            <button id="ban-user-btn" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">禁制用戶</button>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+        <!-- 管理員面板彈窗 -->
+        <div id="admin-panel-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">管理員面板</h3>
+                    <button class="close-modal text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="ban-username" class="block text-gray-700 mb-1">要禁制的用戶名稱</label>
+                        <input type="text" id="ban-username" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="輸入用戶名稱">
+                        <p id="ban-username-error" class="error-message hidden">請輸入用戶名稱</p>
+                    </div>
+                    <div>
+                        <label for="ban-days" class="block text-gray-700 mb-1">禁制天數</label>
+                        <input type="number" id="ban-days" min="1" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="輸入禁制天數">
+                        <p id="ban-days-error" class="error-message hidden">請輸入有效的天數</p>
+                    </div>
+                    <div class="pt-2">
+                        <button id="ban-user-btn" class="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition">禁制用戶</button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- 刪除確認對話框 -->
-    <div id="delete-confirm-dialog" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="dialog-overlay absolute inset-0 bg-black opacity-50"></div>
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-sm relative z-10">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">確定要刪除這篇貼文嗎？</h2>
-            <div class="flex justify-end space-x-4">
-                <button id="cancel-delete-btn" class="px-4 py-2 text-gray-600 hover:text-gray-800">取消</button>
-                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">確認</button>
+        <!-- 確認刪除對話框 -->
+        <div id="delete-confirm-dialog" class="hidden">
+            <div class="dialog-overlay"></div>
+            <div class="confirm-dialog">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">確認刪除</h3>
+                <p class="text-gray-600 mb-6">確定要刪除這則貼文嗎？此操作無法復原。</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">取消</button>
+                    <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">刪除</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 初始化 Socket.IO，指向 Render 後端
+        // 初始化 Socket.IO
         const socket = io('https://zyra-backend-9317.onrender.com');
 
         // 當前登入用戶
@@ -303,7 +635,7 @@
                 
                 if (isAdmin && post.username !== currentUser.username) {
                     postHTML += `
-                        <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${post.username}">
+                        <button class="ban-user-btn ban-btn text-gray-400 hover:text-red-500 transition" data-username="${post.username}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
                             </svg>
@@ -348,7 +680,7 @@
                         `;
                         if (isAdmin && comment.username !== currentUser.username) {
                             postHTML += `
-                                <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${comment.username}">
+                                <button class="ban-user-btn ban-btn text-gray-400 hover:text-red-500 transition" data-username="${comment.username}">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
                                     </svg>
@@ -495,6 +827,65 @@
             }
         }
 
+        // 驗證欄位
+        function validateField(field, errorElement, errorMessage) {
+            const value = field.value.trim();
+            if (!value) {
+                field.classList.add('input-error', 'shake-animation');
+                errorElement.textContent = errorMessage;
+                errorElement.classList.remove('hidden');
+                setTimeout(() => field.classList.remove('shake-animation'), 500);
+                return false;
+            }
+            field.classList.remove('input-error');
+            errorElement.classList.add('hidden');
+            return true;
+        }
+
+        // 驗證電子郵件
+        function validateEmailField(field, errorElement) {
+            const value = field.value.trim();
+            if (!value) {
+                field.classList.add('input-error', 'shake-animation');
+                errorElement.textContent = '請輸入電子郵件';
+                errorElement.classList.remove('hidden');
+                setTimeout(() => field.classList.remove('shake-animation'), 500);
+                return false;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                field.classList.add('input-error', 'shake-animation');
+                errorElement.textContent = '請輸入有效的電子郵件格式';
+                errorElement.classList.remove('hidden');
+                setTimeout(() => field.classList.remove('shake-animation'), 500);
+                return false;
+            }
+            field.classList.remove('input-error');
+            errorElement.classList.add('hidden');
+            return true;
+        }
+
+        // 驗證密碼格式
+        function validatePasswordField(field, errorElement) {
+            const value = field.value;
+            if (!value) {
+                field.classList.add('input-error', 'shake-animation');
+                errorElement.textContent = '請輸入密碼';
+                errorElement.classList.remove('hidden');
+                setTimeout(() => field.classList.remove('shake-animation'), 500);
+                return false;
+            }
+            if (value.length > 6 || !/[a-zA-Z]/.test(value) || !/\d/.test(value)) {
+                field.classList.add('input-error', 'shake-animation');
+                errorElement.textContent = '密碼必須最多6個字元，且包含英文和數字';
+                errorElement.classList.remove('hidden');
+                setTimeout(() => field.classList.remove('shake-animation'), 500);
+                return false;
+            }
+            field.classList.remove('input-error');
+            errorElement.classList.add('hidden');
+            return true;
+        }
+
         // 顯示個人資料
         function showProfile() {
             if (currentUser) {
@@ -506,6 +897,8 @@
                 document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
+                document.querySelectorAll('.error-message').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('input').forEach(el => el.classList.remove('input-error'));
                 showProfileTab();
                 profileModal.classList.remove('hidden');
                 settingsDropdown.classList.remove('active');
@@ -525,294 +918,4 @@
         // 顯示密碼選項卡
         function showPasswordTab() {
             profileTab.classList.add('hidden');
-            passwordTab.classList.remove('hidden');
-            profileTabBtn.classList.remove('tab-active');
-            profileTabBtn.classList.add('text-gray-500');
-            passwordTabBtn.classList.add('tab-active');
-            passwordTabBtn.classList.remove('text-gray-500');
-        }
-
-        // Socket.IO 事件監聽
-        socket.on('posts', (posts) => {
-            renderPosts(posts);
-        });
-
-        socket.on('loginResponse', (data) => {
-            if (data.success) {
-                currentUser = data.user;
-                loginModal.classList.add('hidden');
-                updateUIState();
-                alert('登入成功！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('registerResponse', (data) => {
-            if (data.success) {
-                currentUser = data.user;
-                registerModal.classList.add('hidden');
-                updateUIState();
-                alert('註冊成功！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updateProfileResponse', (data) => {
-            if (data.success) {
-                currentUser = data.user;
-                updateUIState();
-                profileModal.classList.add('hidden');
-                alert('個人資料已更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updatePasswordResponse', (data) => {
-            if (data.success) {
-                document.getElementById('current-password').value = '';
-                document.getElementById('new-password').value = '';
-                document.getElementById('confirm-password').value = '';
-                alert('密碼已成功更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updateAvatarResponse', (data) => {
-            if (data.success) {
-                currentUser.avatar = data.avatar;
-                updateAvatar();
-                socket.emit('getPosts');
-                alert('頭像已更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('postResponse', (data) => {
-            if (!data.success) {
-                alert(data.message);
-            }
-        });
-
-        socket.on('deletePostResponse', (data) => {
-            if (data.success) {
-                hideDeleteConfirmDialog();
-                alert('貼文已成功刪除！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('addCommentResponse', (data) => {
-            if (!data.success) {
-                alert(data.message);
-            }
-        });
-
-        socket.on('simulateBanResponse', (data) => {
-            if (data.success) {
-                currentUser.isBanned = true;
-                currentUser.banDays = data.banDays;
-                updateUIState();
-                settingsDropdown.classList.remove('active');
-            }
-        });
-
-        socket.on('banUserResponse', (data) => {
-            if (data.success) {
-                adminPanelModal.classList.add('hidden');
-                alert(data.message);
-                socket.emit('getPosts');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        // 事件監聽器
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('start-btn').addEventListener('click', () => {
-                registerModal.classList.remove('hidden');
-            });
-
-            document.getElementById('login-nav-btn').addEventListener('click', () => {
-                loginModal.classList.remove('hidden');
-            });
-
-            document.getElementById('login-btn').addEventListener('click', () => {
-                const username = document.getElementById('login-username').value;
-                const password = document.getElementById('login-password').value;
-                if (!username || !password) {
-                    alert('請填寫所有欄位');
-                    return;
-                }
-                socket.emit('login', { username, password });
-            });
-
-            document.getElementById('register-nav-btn').addEventListener('click', () => {
-                registerModal.classList.remove('hidden');
-            });
-
-            document.getElementById('register-btn').addEventListener('click', () => {
-                const username = document.getElementById('register-username').value;
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-                if (!username || !email || !password) {
-                    alert('請填寫所有欄位');
-                    return;
-                }
-                socket.emit('register', { username, email, password });
-            });
-
-            document.getElementById('to-register-btn').addEventListener('click', () => {
-                loginModal.classList.add('hidden');
-                registerModal.classList.remove('hidden');
-            });
-
-            document.getElementById('to-login-btn').addEventListener('click', () => {
-                registerModal.classList.add('hidden');
-                loginModal.classList.remove('hidden');
-            });
-
-            document.querySelectorAll('.close-modal').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    this.closest('.fixed').classList.add('hidden');
-                });
-            });
-
-            document.getElementById('settings-btn').addEventListener('click', () => {
-                settingsDropdown.classList.toggle('active');
-            });
-
-            document.getElementById('profile-btn').addEventListener('click', showProfile);
-
-            document.getElementById('admin-panel-btn').addEventListener('click', () => {
-                showAdminPanel('');
-                settingsDropdown.classList.remove('active');
-            });
-
-            document.getElementById('simulate-ban-btn').addEventListener('click', () => {
-                socket.emit('simulateBan');
-            });
-
-            document.getElementById('logout-btn').addEventListener('click', () => {
-                currentUser = null;
-                updateUIState();
-                settingsDropdown.classList.remove('active');
-                alert('已成功登出');
-            });
-
-            document.getElementById('post-btn').addEventListener('click', () => {
-                const content = document.getElementById('post-content').value.trim();
-                if (!content) {
-                    alert('請輸入貼文內容');
-                    return;
-                }
-                if (currentUser.isBanned) {
-                    alert('您的帳號已被停權，無法發布貼文');
-                    return;
-                }
-                socket.emit('createPost', { username: currentUser.username, content });
-                document.getElementById('post-content').value = '';
-            });
-
-            document.getElementById('update-profile-btn').addEventListener('click', () => {
-                const newUsername = document.getElementById('update-username').value.trim();
-                const newEmail = document.getElementById('update-email').value.trim();
-                if (!newUsername || !newEmail) {
-                    alert('請填寫所有欄位');
-                    return;
-                }
-                socket.emit('updateProfile', { username: currentUser.username, newUsername, newEmail });
-            });
-
-            document.getElementById('update-password-btn').addEventListener('click', () => {
-                const currentPassword = document.getElementById('current-password').value;
-                const newPassword = document.getElementById('new-password').value;
-                const confirmPassword = document.getElementById('confirm-password').value;
-                if (!currentPassword || !newPassword || !confirmPassword) {
-                    alert('請填寫所有欄位');
-                    return;
-                }
-                if (newPassword !== confirmPassword) {
-                    alert('新密碼與確認密碼不符');
-                    return;
-                }
-                socket.emit('updatePassword', { username: currentUser.username, currentPassword, newPassword });
-            });
-
-            document.getElementById('change-avatar-btn').addEventListener('click', () => {
-                avatarInput.click();
-            });
-
-            avatarInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-                if (!file.type.match('image.*')) {
-                    alert('請選擇圖片文件');
-                    return;
-                }
-                if (file.size > 2 * 1024 * 1024) {
-                    alert('圖片大小不能超過2MB');
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    socket.emit('updateAvatar', { username: currentUser.username, avatar: e.target.result });
-                };
-                reader.readAsDataURL(file);
-            });
-
-            confirmDeleteBtn.addEventListener('click', () => {
-                if (currentDeletePostId) {
-                    socket.emit('deletePost', { postId: currentDeletePostId, username: currentUser.username });
-                }
-            });
-
-            cancelDeleteBtn.addEventListener('click', hideDeleteConfirmDialog);
-
-            banUserBtn.addEventListener('click', () => {
-                const targetUsername = banUsernameInput.value.trim();
-                const banDays = parseInt(banDaysInput.value);
-                if (!targetUsername || !banDays || banDays < 1) {
-                    alert('請輸入有效的用戶名稱和禁制天數');
-                    return;
-                }
-                socket.emit('banUser', { adminUsername: currentUser.username, targetUsername, banDays });
-            });
-
-            document.addEventListener('click', (event) => {
-                if (!event.target.closest('#settings-btn') && !event.target.closest('#settings-dropdown')) {
-                    settingsDropdown.classList.remove('active');
-                }
-            });
-
-            document.querySelector('.dialog-overlay').addEventListener('click', hideDeleteConfirmDialog);
-
-            const lockIcon = document.querySelector('.lock-animation');
-            if (lockIcon) {
-                setInterval(() => {
-                    lockIcon.classList.add('lock-animation');
-                    setTimeout(() => {
-                        lockIcon.classList.remove('lock-animation');
-                    }, 500);
-                }, 5000);
-            }
-
-            profileTabBtn.addEventListener('click', showProfileTab);
-            passwordTabBtn.addEventListener('click', showPasswordTab);
-
-            updateUIState();
-        });
-
-        // Socket.IO 連線錯誤處理
-        socket.on('connect_error', (error) => {
-            console.error('Socket.IO 連線錯誤:', error);
-            alert('無法連接到伺服器，請檢查網路或後端服務');
-        });
-    </script>
-</body>
-</html>
+            passwordTab.classList
