@@ -131,10 +131,11 @@
     <div id="register-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
         <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md">
             <h2 class="text-2xl font-bold text-gray-800 mb-6">註冊</h2>
-            <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱">
-            <input id="register-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="電子郵件">
-            <input id="register-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼（6個字符，包含英文和數字）">
-            <p id="password-error" class="text-red-500 text-sm hidden">密碼必須為6個字符，包含英文和數字</p>
+            <input id="register-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="暱稱（顯示名稱）">
+            <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱（僅限英文和數字）">
+            <input id="register-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼（6個字符以上，包含英文和數字）">
+            <p id="password-error" class="text-red-500 text-sm hidden">密碼必須為6個字符以上，包含英文和數字</p>
+            <p id="username-error" class="text-red-500 text-sm hidden">使用者名稱只能包含英文和數字</p>
             <button id="register-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
             <p class="mt-4 text-center text-gray-600">已有帳號？ <button id="to-login-btn" class="text-indigo-600 hover:underline">登入</button></p>
             <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
@@ -160,16 +161,19 @@
                     <button id="change-avatar-btn" class="ml-4 text-indigo-600 hover:underline">更改頭像</button>
                     <input id="avatar-input" type="file" accept="image/*" class="hidden">
                 </div>
+                <p class="text-gray-700 mb-2">暱稱: <span id="profile-displayname"></span></p>
                 <p class="text-gray-700 mb-2">使用者名稱: <span id="profile-username"></span></p>
                 <p class="text-gray-700 mb-4">電子郵件: <span id="profile-email"></span></p>
-                <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱">
-                <input id="update-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新電子郵件">
+                <input id="update-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新暱稱">
+                <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱（僅限英文和數字）">
+                <input id="update-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="電子郵件（選填）">
+                <p id="update-username-error" class="text-red-500 text-sm hidden">新使用者名稱只能包含英文和數字</p>
                 <button id="update-profile-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更新資料</button>
             </div>
             <div id="password-tab" class="hidden">
                 <input id="current-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="目前密碼">
-                <input id="new-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新密碼（6個字符，包含英文和數字）">
-                <p id="new-password-error" class="text-red-500 text-sm hidden">新密碼必須為6個字符，包含英文和數字</p>
+                <input id="new-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新密碼（6個字符以上，包含英文和數字）">
+                <p id="new-password-error" class="text-red-500 text-sm hidden">新密碼必須為6個字符以上，包含英文和數字</p>
                 <input id="confirm-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="確認新密碼">
                 <button id="update-password-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更改密碼</button>
             </div>
@@ -249,11 +253,19 @@
         const banUsernameInput = document.getElementById('ban-username');
         const banDaysInput = document.getElementById('ban-days');
         const passwordError = document.getElementById('password-error');
+        const usernameError = document.getElementById('username-error');
         const newPasswordError = document.getElementById('new-password-error');
+        const updateUsernameError = document.getElementById('update-username-error');
+
+        // 驗證使用者名稱格式
+        function validateUsername(username) {
+            const usernameRegex = /^[A-Za-z0-9]+$/;
+            return usernameRegex.test(username);
+        }
 
         // 驗證密碼格式
         function validatePassword(password) {
-            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6}$/;
+            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
             return passwordRegex.test(password);
         }
 
@@ -284,17 +296,17 @@
                 `;
                 
                 if (post.avatar) {
-                    postHTML += `<img src="${post.avatar}" class="h-full w-full object-cover" alt="${post.username}的頭像">`;
+                    postHTML += `<img src="${post.avatar}" class="h-full w-full object-cover" alt="${post.displayName || post.username}的頭像">`;
                 } else {
                     postHTML += `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">
-                                    ${post.username.charAt(0).toUpperCase()}
+                                    ${(post.displayName || post.username).charAt(0).toUpperCase()}
                                 </div>`;
                 }
                 
                 postHTML += `
                             </div>
                             <div class="ml-3">
-                                <h4 class="font-bold text-gray-800">${post.username}</h4>
+                                <h4 class="font-bold text-gray-800">${post.displayName || post.username}</h4>
                                 <p class="text-sm text-gray-500">${formattedDate}</p>
                             </div>
                         </div>
@@ -341,16 +353,16 @@
                                     <div class="h-6 w-6 rounded-full overflow-hidden">
                         `;
                         if (comment.avatar) {
-                            postHTML += `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.username}的頭像">`;
+                            postHTML += `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">`;
                         } else {
                             postHTML += `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center text-xs">
-                                            ${comment.username.charAt(0).toUpperCase()}
+                                            ${(comment.displayName || comment.username).charAt(0).toUpperCase()}
                                         </div>`;
                         }
                         postHTML += `
                                     </div>
                                     <div class="ml-2">
-                                        <span class="font-medium text-gray-800">${comment.username}</span>
+                                        <span class="font-medium text-gray-800">${comment.displayName || comment.username}</span>
                                         <span class="text-xs text-gray-500 ml-2">${commentDate}</span>
                                         <p class="text-gray-700 mt-1 text-sm">${comment.content}</p>
                                     </div>
@@ -449,7 +461,7 @@
                 welcomeSection.classList.add('hidden');
                 navButtons.classList.add('hidden');
                 userInfo.classList.remove('hidden');
-                usernameDisplay.textContent = currentUser.username;
+                usernameDisplay.textContent = currentUser.displayName || currentUser.username;
                 if (currentUser.isAdmin) {
                     adminPanelBtn.classList.remove('hidden');
                 } else {
@@ -495,10 +507,10 @@
                 profileAvatarImg.src = currentUser.avatar;
                 profileAvatarImg.classList.remove('hidden');
             } else {
-                navAvatarText.textContent = currentUser ? currentUser.username.charAt(0).toUpperCase() : '';
+                navAvatarText.textContent = currentUser ? (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() : '';
                 navAvatarText.classList.remove('hidden');
                 navAvatarImg.classList.add('hidden');
-                profileAvatar.textContent = currentUser ? currentUser.username.charAt(0).toUpperCase() : '';
+                profileAvatar.textContent = currentUser ? (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() : '';
                 profileAvatar.classList.remove('hidden');
                 profileAvatarImg.classList.add('hidden');
             }
@@ -508,10 +520,12 @@
         function showProfile() {
             if (currentUser) {
                 updateAvatar();
+                document.getElementById('profile-displayname').textContent = currentUser.displayName || currentUser.username;
                 document.getElementById('profile-username').textContent = currentUser.username;
-                document.getElementById('profile-email').textContent = currentUser.email;
+                document.getElementById('profile-email').textContent = currentUser.email || '未設置';
+                document.getElementById('update-displayname').value = currentUser.displayName || currentUser.username;
                 document.getElementById('update-username').value = currentUser.username;
-                document.getElementById('update-email').value = currentUser.email;
+                document.getElementById('update-email').value = currentUser.email || '';
                 document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
@@ -541,14 +555,40 @@
             passwordTabBtn.classList.remove('text-gray-500');
         }
 
+        // 檢查並驗證儲存的 token
+        function checkStoredToken() {
+            const username = localStorage.getItem('username');
+            const password = localStorage.getItem('password');
+            if (username && password) {
+                socket.emit('verifyToken', { username, password });
+            }
+        }
+
         // Socket.IO 事件監聽
+        socket.on('connect', () => {
+            checkStoredToken();
+        });
+
         socket.on('posts', (posts) => {
             renderPosts(posts);
+        });
+
+        socket.on('verifyTokenResponse', (data) => {
+            if (data.success) {
+                currentUser = data.user;
+                updateUIState();
+            } else {
+                localStorage.removeItem('username');
+                localStorage.removeItem('password');
+                updateUIState();
+            }
         });
 
         socket.on('loginResponse', (data) => {
             if (data.success) {
                 currentUser = data.user;
+                localStorage.setItem('username', currentUser.username);
+                localStorage.setItem('password', currentUser.password);
                 loginModal.classList.add('hidden');
                 updateUIState();
                 alert('登入成功！');
@@ -560,6 +600,8 @@
         socket.on('registerResponse', (data) => {
             if (data.success) {
                 currentUser = data.user;
+                localStorage.setItem('username', currentUser.username);
+                localStorage.setItem('password', currentUser.password);
                 registerModal.classList.add('hidden');
                 updateUIState();
                 alert('註冊成功！');
@@ -570,6 +612,7 @@
 
         socket.on('updateProfileResponse', (data) => {
             if (data.success) {
+                localStorage.setItem('username', data.user.username);
                 currentUser = data.user;
                 updateUIState();
                 profileModal.classList.add('hidden');
@@ -581,6 +624,7 @@
 
         socket.on('updatePasswordResponse', (data) => {
             if (data.success) {
+                localStorage.setItem('password', document.getElementById('new-password').value);
                 document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
@@ -667,19 +711,24 @@
             });
 
             document.getElementById('register-btn').addEventListener('click', () => {
+                const displayName = document.getElementById('register-displayname').value.trim();
                 const username = document.getElementById('register-username').value.trim();
-                const email = document.getElementById('register-email').value.trim();
                 const password = document.getElementById('register-password').value;
-                if (!username || !email || !password) {
-                    alert('請填寫所有欄位');
+                if (!username || !password) {
+                    alert('請填寫所有必填欄位');
+                    return;
+                }
+                if (!validateUsername(username)) {
+                    usernameError.classList.remove('hidden');
                     return;
                 }
                 if (!validatePassword(password)) {
                     passwordError.classList.remove('hidden');
                     return;
                 }
+                usernameError.classList.add('hidden');
                 passwordError.classList.add('hidden');
-                socket.emit('register', { username, email, password });
+                socket.emit('register', { username, displayName, password });
             });
 
             document.getElementById('to-register-btn').addEventListener('click', () => {
@@ -696,7 +745,9 @@
                 btn.addEventListener('click', function() {
                     this.closest('.fixed').classList.add('hidden');
                     passwordError.classList.add('hidden');
+                    usernameError.classList.add('hidden');
                     newPasswordError.classList.add('hidden');
+                    updateUsernameError.classList.add('hidden');
                 });
             });
 
@@ -717,6 +768,8 @@
 
             document.getElementById('logout-btn').addEventListener('click', () => {
                 currentUser = null;
+                localStorage.removeItem('username');
+                localStorage.removeItem('password');
                 updateUIState();
                 settingsDropdown.classList.remove('active');
                 alert('已成功登出');
@@ -736,13 +789,19 @@
             });
 
             document.getElementById('update-profile-btn').addEventListener('click', () => {
+                const newDisplayName = document.getElementById('update-displayname').value.trim();
                 const newUsername = document.getElementById('update-username').value.trim();
                 const newEmail = document.getElementById('update-email').value.trim();
-                if (!newUsername || !newEmail) {
-                    alert('請填寫所有欄位');
+                if (!newUsername) {
+                    alert('請填寫使用者名稱');
                     return;
                 }
-                socket.emit('updateProfile', { username: currentUser.username, newUsername, newEmail });
+                if (!validateUsername(newUsername)) {
+                    updateUsernameError.classList.remove('hidden');
+                    return;
+                }
+                updateUsernameError.classList.add('hidden');
+                socket.emit('updateProfile', { username: currentUser.username, newUsername, newDisplayName, newEmail });
             });
 
             document.getElementById('update-password-btn').addEventListener('click', () => {
