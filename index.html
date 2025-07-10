@@ -541,40 +541,14 @@
             passwordTabBtn.classList.remove('text-gray-500');
         }
 
-        // 檢查並驗證儲存的 token
-        function checkStoredToken() {
-            const username = localStorage.getItem('username');
-            const password = localStorage.getItem('password');
-            if (username && password) {
-                socket.emit('verifyToken', { username, password });
-            }
-        }
-
         // Socket.IO 事件監聽
-        socket.on('connect', () => {
-            checkStoredToken();
-        });
-
         socket.on('posts', (posts) => {
             renderPosts(posts);
-        });
-
-        socket.on('verifyTokenResponse', (data) => {
-            if (data.success) {
-                currentUser = data.user;
-                updateUIState();
-            } else {
-                localStorage.removeItem('username');
-                localStorage.removeItem('password');
-                updateUIState();
-            }
         });
 
         socket.on('loginResponse', (data) => {
             if (data.success) {
                 currentUser = data.user;
-                localStorage.setItem('username', currentUser.username);
-                localStorage.setItem('password', currentUser.password);
                 loginModal.classList.add('hidden');
                 updateUIState();
                 alert('登入成功！');
@@ -586,8 +560,6 @@
         socket.on('registerResponse', (data) => {
             if (data.success) {
                 currentUser = data.user;
-                localStorage.setItem('username', currentUser.username);
-                localStorage.setItem('password', currentUser.password);
                 registerModal.classList.add('hidden');
                 updateUIState();
                 alert('註冊成功！');
@@ -598,7 +570,6 @@
 
         socket.on('updateProfileResponse', (data) => {
             if (data.success) {
-                localStorage.setItem('username', data.user.username);
                 currentUser = data.user;
                 updateUIState();
                 profileModal.classList.add('hidden');
@@ -610,7 +581,6 @@
 
         socket.on('updatePasswordResponse', (data) => {
             if (data.success) {
-                localStorage.setItem('password', document.getElementById('new-password').value);
                 document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
@@ -747,8 +717,6 @@
 
             document.getElementById('logout-btn').addEventListener('click', () => {
                 currentUser = null;
-                localStorage.removeItem('username');
-                localStorage.removeItem('password');
                 updateUIState();
                 settingsDropdown.classList.remove('active');
                 alert('已成功登出');
