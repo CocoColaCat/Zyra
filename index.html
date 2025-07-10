@@ -44,17 +44,8 @@
     </style>
 </head>
 <body>
-    <!-- 歡迎區塊 -->
-    <div id="welcome-section" class="min-h-screen flex items-center justify-center">
-        <div class="text-center">
-            <h1 class="text-5xl font-bold text-gray-800 mb-6">Zyra</h1>
-            <p class="text-lg text-gray-600 mb-8">分享你的想法，與世界連結</p>
-            <button id="start-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">開始使用</button>
-        </div>
-    </div>
-
     <!-- 導航列 -->
-    <nav class="bg-white shadow p-4 sticky top-0 z-10">
+    <nav class="bg-white shadow p-4 fixed top-0 left-0 right-0 z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-bold text-gray-800">Zyra</h1>
             <div id="nav-buttons" class="space-x-4">
@@ -77,18 +68,27 @@
                 <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-2">
                     <button id="profile-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">個人資料</button>
                     <button id="admin-panel-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hidden">管理員面板</button>
-                    <button id="simulate-ban-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">模擬停權</button>
                     <button id="logout-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">登出</button>
                 </div>
             </div>
         </div>
     </nav>
 
+    <!-- 歡迎區塊 -->
+    <div id="welcome-section" class="min-h-screen flex items-center justify-center pt-16">
+        <div class="text-center">
+            <h1 class="text-5xl font-bold text-gray-800 mb-6">Zyra</h1>
+            <p class="text-lg text-gray-600 mb-8">分享你的想法，與世界連結</p>
+            <button id="start-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">開始使用</button>
+        </div>
+    </div>
+
     <!-- 內容區塊 -->
-    <div id="content-section" class="max-w-4xl mx-auto py-6 hidden">
+    <div id="content-section" class="max-w-4xl mx-auto py-6 mt-16 hidden">
         <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="分享你的想法..."></textarea>
-            <div class="flex justify-end mt-3">
+            <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="分享你的想法（最多500字元）" maxlength="500"></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <span id="char-count" class="text-sm text-gray-500">剩餘 500 字</span>
                 <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">發布</button>
             </div>
         </div>
@@ -96,7 +96,7 @@
     </div>
 
     <!-- 停權區塊 -->
-    <div id="banned-section" class="min-h-screen flex items-center justify-center hidden">
+    <div id="banned-section" class="min-h-screen flex items-center justify-center pt-16 hidden">
         <div class="text-center">
             <svg class="lock-animation mx-auto h-16 w-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v4c0 1.104.896 2 2 2h2c1.104 0 2-.896 2-2v-2m2-6h6m-6 0v6m0-6V5c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v2" />
@@ -256,6 +256,8 @@
         const usernameError = document.getElementById('username-error');
         const newPasswordError = document.getElementById('new-password-error');
         const updateUsernameError = document.getElementById('update-username-error');
+        const postContent = document.getElementById('post-content');
+        const charCount = document.getElementById('char-count');
 
         // 驗證使用者名稱格式
         function validateUsername(username) {
@@ -267,6 +269,25 @@
         function validatePassword(password) {
             const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
             return passwordRegex.test(password);
+        }
+
+        // 驗證貼文內容長度
+        function validatePostContent(content) {
+            return content.length <= 500;
+        }
+
+        // 更新字數計數器
+        function updateCharCount() {
+            const content = postContent.value;
+            const remaining = 500 - content.length;
+            charCount.textContent = `剩餘 ${remaining} 字`;
+            if (remaining < 0) {
+                charCount.classList.add('text-red-500');
+                charCount.classList.remove('text-gray-500');
+            } else {
+                charCount.classList.add('text-gray-500');
+                charCount.classList.remove('text-red-500');
+            }
         }
 
         // 格式化日期
@@ -649,7 +670,8 @@
             if (!data.success) {
                 alert(data.message);
             } else {
-                document.getElementById('post-content').value = '';
+                postContent.value = '';
+                updateCharCount();
             }
         });
 
@@ -665,15 +687,6 @@
         socket.on('addCommentResponse', (data) => {
             if (!data.success) {
                 alert(data.message);
-            }
-        });
-
-        socket.on('simulateBanResponse', (data) => {
-            if (data.success) {
-                currentUser.isBanned = true;
-                currentUser.banDays = data.banDays;
-                updateUIState();
-                settingsDropdown.classList.remove('active');
             }
         });
 
@@ -762,10 +775,6 @@
                 settingsDropdown.classList.remove('active');
             });
 
-            document.getElementById('simulate-ban-btn').addEventListener('click', () => {
-                socket.emit('simulateBan');
-            });
-
             document.getElementById('logout-btn').addEventListener('click', () => {
                 currentUser = null;
                 localStorage.removeItem('username');
@@ -776,9 +785,13 @@
             });
 
             document.getElementById('post-btn').addEventListener('click', () => {
-                const content = document.getElementById('post-content').value.trim();
+                const content = postContent.value.trim();
                 if (!content) {
                     alert('請輸入貼文內容');
+                    return;
+                }
+                if (!validatePostContent(content)) {
+                    alert('貼文內容不得超過500個字元');
                     return;
                 }
                 if (currentUser.isBanned) {
@@ -787,6 +800,8 @@
                 }
                 socket.emit('createPost', { username: currentUser.username, content });
             });
+
+            postContent.addEventListener('input', updateCharCount);
 
             document.getElementById('update-profile-btn').addEventListener('click', () => {
                 const newDisplayName = document.getElementById('update-displayname').value.trim();
@@ -886,6 +901,7 @@
             passwordTabBtn.addEventListener('click', showPasswordTab);
 
             updateUIState();
+            updateCharCount();
         });
 
         // Socket.IO 連線錯誤處理
