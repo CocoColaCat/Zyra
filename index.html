@@ -3,13 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zyra - 向全世界的人發佈內容</title>
+    <title>Zyra - 社交平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f3f4f6;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .post-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .verified-badge {
+            background-color: #f59e0b;
+            color: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 2px white;
+        }
+        .user-link {
+            cursor: pointer;
+            color: #4f46e5;
+        }
+        .user-link:hover {
+            text-decoration: underline;
         }
         .modal {
             background: rgba(0, 0, 0, 0.5);
@@ -17,258 +38,188 @@
         .modal-content {
             max-width: 400px;
         }
-        .post-card {
-            margin-bottom: 1.5rem;
-        }
-        .tab-active {
-            color: #4f46e5;
-            border-bottom: 2px solid #4f46e5;
-        }
-        .dropdown-content {
-            display: none;
-        }
-        .dropdown-content.active {
-            display: block;
-        }
-        .lock-animation {
-            animation: shake 0.5s;
-        }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
         .hidden {
             display: none;
         }
     </style>
 </head>
 <body>
-    <!-- 導航列 -->
-    <nav class="bg-white shadow p-4 fixed top-0 left-0 right-0 z-50">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-800">Zyra</h1>
-            <div id="nav-buttons" class="space-x-4">
-                <button id="login-nav-btn" class="text-indigo-600 hover:text-indigo-800">登入</button>
-                <button id="register-nav-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
-            </div>
-            <div id="user-info" class="hidden relative">
-                <div class="flex items-center space-x-3">
-                    <div id="nav-avatar" class="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center bg-indigo-100">
-                        <span id="nav-avatar-text" class="text-indigo-800 font-bold"></span>
-                        <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="用戶頭像">
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+        <!-- 導航列 -->
+        <nav class="bg-white shadow p-4 fixed top-0 left-0 right-0 z-50">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <a href="/Zyra/" class="text-2xl font-bold text-gray-800">Zyra</a>
+                <div id="nav-buttons" class="space-x-4">
+                    <button id="login-nav-btn" class="text-indigo-600 hover:text-indigo-800">登入</button>
+                    <button id="register-nav-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
+                </div>
+                <div id="user-info" class="hidden relative">
+                    <div class="flex items-center space-x-3">
+                        <div id="nav-avatar" class="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center bg-indigo-100">
+                            <span id="nav-avatar-text" class="text-indigo-800 font-bold"></span>
+                            <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="用戶頭像">
+                        </div>
+                        <span id="username-display" class="font-medium text-gray-800 user-link" onclick="goToProfile(currentUser.username)"></span>
+                        <button id="settings-btn" class="text-gray-600 hover:text-gray-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
                     </div>
-                    <span id="username-display" class="font-medium text-gray-800"></span>
-                    <button id="settings-btn" class="text-gray-600 hover:text-gray-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+                    <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-2 hidden">
+                        <button id="profile-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">個人資料</button>
+                        <button id="admin-panel-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hidden">管理員面板</button>
+                        <button id="logout-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">登出</button>
+                    </div>
                 </div>
-                <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-2">
-                    <button id="profile-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">個人資料</button>
-                    <button id="admin-panel-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hidden">管理員面板</button>
-                    <button id="logout-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">登出</button>
+            </div>
+        </nav>
+
+        <!-- 主內容 -->
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+            <!-- 發文區域 -->
+            <div id="post-section" class="bg-white rounded-lg shadow-sm p-6 mb-8 hidden">
+                <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none" rows="4" placeholder="分享你的想法..."></textarea>
+                <div class="flex justify-end mt-4">
+                    <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">發布</button>
+                </div>
+            </div>
+
+            <!-- 貼文列表 -->
+            <div id="posts-container" class="space-y-6">
+                <div id="loading-posts" class="text-center py-8">
+                    <p class="text-gray-600">正在加載貼文...</p>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <!-- 歡迎區塊 -->
-    <div id="welcome-section" class="min-h-screen flex items-center justify-center pt-16">
-        <div class="text-center">
-            <h1 class="text-5xl font-bold text-gray-800 mb-6">Zyra</h1>
-            <p class="text-lg text-gray-600 mb-8">分享你的想法，與世界連結</p>
-            <button id="start-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">開始使用</button>
-        </div>
-    </div>
-
-    <!-- 內容區塊 -->
-    <div id="content-section" class="max-w-4xl mx-auto py-6 mt-16 hidden">
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="分享你的想法（最多500字元）" maxlength="500"></textarea>
-            <div class="flex justify-between items-center mt-3">
-                <span id="char-count" class="text-sm text-gray-500">剩餘 500 字</span>
-                <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">發布</button>
+        <!-- 登入模態框 -->
+        <div id="login-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">登入</h2>
+                <input id="login-identifier" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱或電子郵件">
+                <input id="login-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼">
+                <button id="login-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">登入</button>
+                <p class="mt-4 text-center text-gray-600">還沒有帳號？ <button id="to-register-btn" class="text-indigo-600 hover:underline">註冊</button></p>
+                <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
+            <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
         </div>
-        <div id="posts-container" class="space-y-6"></div>
-    </div>
 
-    <!-- 停權區塊 -->
-    <div id="banned-section" class="min-h-screen flex items-center justify-center pt-16 hidden">
-        <div class="text-center">
-            <svg class="lock-animation mx-auto h-16 w-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v4c0 1.104.896 2 2 2h2c1.104 0 2-.896 2-2v-2m2-6h6m-6 0v6m0-6V5c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v2" />
-            </svg>
-            <h2 class="text-2xl font-bold text-gray-800 mt-4">您的帳號已被停權</h2>
-            <p class="text-gray-600 mt-2">剩餘 <span id="days-count">0</span> 天</p>
-            <svg class="mx-auto mt-4" width="100" height="100">
-                <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none" />
-                <circle id="countdown-circle" cx="50" cy="50" r="40" stroke="#ef4444" stroke-width="8" fill="none" stroke-dasharray="251" stroke-dashoffset="0" />
-                <text id="countdown-days" x="50" y="55" text-anchor="middle" font-size="20" fill="#1f2937">0</text>
-            </svg>
-        </div>
-    </div>
-
-    <!-- 登入模態框 -->
-    <div id="login-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">登入</h2>
-            <input id="login-identifier" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱或電子郵件">
-            <input id="login-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼">
-            <button id="login-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">登入</button>
-            <p class="mt-4 text-center text-gray-600">還沒有帳號？ <button id="to-register-btn" class="text-indigo-600 hover:underline">註冊</button></p>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
-    </div>
-
-    <!-- 註冊模態框 -->
-    <div id="register-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">註冊</h2>
-            <input id="register-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="暱稱（顯示名稱）">
-            <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱（僅限英文和數字）">
-            <input id="register-about" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="關於我（選填）">
-            <input id="register-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼（6個字符以上，包含英文和數字）">
-            <p id="password-error" class="text-red-500 text-sm hidden">密碼必須為6個字符以上，包含英文和數字</p>
-            <p id="username-error" class="text-red-500 text-sm hidden">使用者名稱只能包含英文和數字</p>
-            <button id="register-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
-            <p class="mt-4 text-center text-gray-600">已有帳號？ <button id="to-login-btn" class="text-indigo-600 hover:underline">登入</button></p>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
-    </div>
-
-    <!-- 個人資料模態框 -->
-    <div id="profile-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">個人資料</h2>
-            <div class="flex mb-4">
-                <button id="profile-tab-btn" class="tab-active px-4 py-2 text-indigo-600 font-medium">個人資料</button>
-                <button id="password-tab-btn" class="px-4 py-2 text-gray-500">更改密碼</button>
+        <!-- 註冊模態框 -->
+        <div id="register-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">註冊</h2>
+                <input id="register-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="暱稱（顯示名稱）">
+                <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱（僅限英文和數字）">
+                <input id="register-about" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="關於我（選填）">
+                <input id="register-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼（6個字符以上，包含英文和數字）">
+                <p id="password-error" class="text-red-500 text-sm hidden">密碼必須為6個字符以上，包含英文和數字</p>
+                <p id="username-error" class="text-red-500 text-sm hidden">使用者名稱只能包含英文和數字</p>
+                <button id="register-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
+                <p class="mt-4 text-center text-gray-600">已有帳號？ <button id="to-login-btn" class="text-indigo-600 hover:underline">登入</button></p>
+                <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
-            <div id="profile-tab">
-                <div class="flex items-center mb-4">
-                    <div id="profile-avatar" class="h-12 w-12 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center"></div>
-                    <img id="profile-avatar-img" class="h-12 w-12 rounded-full object-cover hidden" alt="用戶頭像">
-                    <button id="change-avatar-btn" class="ml-4 text-indigo-600 hover:underline">更改頭像</button>
-                    <input id="avatar-input" type="file" accept="image/*" class="hidden">
-                </div>
-                <p class="text-gray-700 mb-2">暱稱: <span id="profile-displayname"></span></p>
-                <p class="text-gray-700 mb-2">使用者名稱: <span id="profile-username"></span></p>
-                <p class="text-gray-700 mb-4">關於我: <span id="profile-about"></span></p>
-                <p class="text-gray-700 mb-4">電子郵件: <span id="profile-email"></span></p>
+            <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+        </div>
+
+        <!-- 個人資料模態框 -->
+        <div id="profile-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">編輯個人資料</h2>
                 <input id="update-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新暱稱">
                 <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱（僅限英文和數字）">
                 <input id="update-about" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="關於我（選填）">
                 <input id="update-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="電子郵件（選填）">
                 <p id="update-username-error" class="text-red-500 text-sm hidden">新使用者名稱只能包含英文和數字</p>
                 <button id="update-profile-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更新資料</button>
+                <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
-            <div id="password-tab" class="hidden">
-                <input id="current-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="目前密碼">
-                <input id="new-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新密碼（6個字符以上，包含英文和數字）">
-                <p id="new-password-error" class="text-red-500 text-sm hidden">新密碼必須為6個字符以上，包含英文和數字</p>
-                <input id="confirm-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="確認新密碼">
-                <button id="update-password-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更改密碼</button>
-            </div>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+            <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
         </div>
-        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
-    </div>
 
-    <!-- 管理員面板模態框 -->
-    <div id="admin-panel-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員面板</h2>
-            <input id="ban-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="要禁制的用戶名稱">
-            <input id="ban-days" type="number" min="1" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="禁制天數">
-            <button id="ban-user-btn" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">禁制用戶</button>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
-    </div>
-
-    <!-- 刪除確認對話框 -->
-    <div id="delete-confirm-dialog" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-sm relative z-10">
-            <h2 id="delete-confirm-title" class="text-xl font-bold text-gray-800 mb-4">確定要刪除這篇貼文嗎？</h2>
-            <div class="flex justify-end space-x-4">
-                <button id="cancel-delete-btn" class="px-4 py-2 text-gray-600 hover:text-gray-800">取消</button>
-                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">確認</button>
+        <!-- 管理員面板模態框 -->
+        <div id="admin-panel-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員面板</h2>
+                <input id="ban-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="要禁制的用戶名稱">
+                <input id="ban-days" type="number" min="1" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="禁制天數">
+                <button id="ban-user-btn" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">禁制用戶</button>
+                <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
+            <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
         </div>
-        <div class="dialog-overlay absolute inset-0 bg-black opacity-50"></div>
+
+        <!-- 刪除確認對話框 -->
+        <div id="delete-confirm-dialog" class="fixed inset-0 modal flex items-center justify-center hidden">
+            <div class="modal-content bg-white rounded-lg p-6 w-full max-w-sm relative z-10">
+                <h2 id="delete-confirm-title" class="text-xl font-bold text-gray-800 mb-4">確定要刪除這篇貼文嗎？</h2>
+                <div class="flex justify-end space-x-4">
+                    <button id="cancel-delete-btn" class="px-4 py-2 text-gray-600 hover:text-gray-800">取消</button>
+                    <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">確認</button>
+                </div>
+            </div>
+            <div class="dialog-overlay absolute inset-0 bg-black opacity-50"></div>
+        </div>
     </div>
 
     <script>
         // 初始化 Socket.IO
         const socket = io('https://zyra-backend-9317.onrender.com');
 
-        // 當前登入用戶
+        // 當前用戶
         let currentUser = null;
         let currentDeletePostId = null;
         let currentDeleteComment = null;
 
         // DOM 元素
+        const postSection = document.getElementById('post-section');
+        const postContent = document.getElementById('post-content');
+        const postBtn = document.getElementById('post-btn');
+        const postsContainer = document.getElementById('posts-container');
+        const loadingPosts = document.getElementById('loading-posts');
+        const navButtons = document.getElementById('nav-buttons');
+        const userInfo = document.getElementById('user-info');
+        const usernameDisplay = document.getElementById('username-display');
+        const navAvatarText = document.getElementById('nav-avatar-text');
+        const navAvatarImg = document.getElementById('nav-avatar-img');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsDropdown = document.getElementById('settings-dropdown');
+        const profileBtn = document.getElementById('profile-btn');
+        const adminPanelBtn = document.getElementById('admin-panel-btn');
+        const logoutBtn = document.getElementById('logout-btn');
         const loginModal = document.getElementById('login-modal');
         const registerModal = document.getElementById('register-modal');
         const profileModal = document.getElementById('profile-modal');
         const adminPanelModal = document.getElementById('admin-panel-modal');
         const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
         const deleteConfirmTitle = document.getElementById('delete-confirm-title');
-        const welcomeSection = document.getElementById('welcome-section');
-        const contentSection = document.getElementById('content-section');
-        const bannedSection = document.getElementById('banned-section');
-        const navButtons = document.getElementById('nav-buttons');
-        const userInfo = document.getElementById('user-info');
-        const usernameDisplay = document.getElementById('username-display');
-        const postsContainer = document.getElementById('posts-container');
-        const settingsDropdown = document.getElementById('settings-dropdown');
-        const profileTab = document.getElementById('profile-tab');
-        const passwordTab = document.getElementById('password-tab');
-        const profileTabBtn = document.getElementById('profile-tab-btn');
-        const passwordTabBtn = document.getElementById('password-tab-btn');
-        const navAvatarText = document.getElementById('nav-avatar-text');
-        const navAvatarImg = document.getElementById('nav-avatar-img');
-        const profileAvatar = document.getElementById('profile-avatar');
-        const profileAvatarImg = document.getElementById('profile-avatar-img');
-        const avatarInput = document.getElementById('avatar-input');
         const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
         const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
-        const countdownCircle = document.getElementById('countdown-circle');
-        const countdownDays = document.getElementById('countdown-days');
-        const daysCount = document.getElementById('days-count');
-        const adminPanelBtn = document.getElementById('admin-panel-btn');
         const banUserBtn = document.getElementById('ban-user-btn');
         const banUsernameInput = document.getElementById('ban-username');
         const banDaysInput = document.getElementById('ban-days');
         const passwordError = document.getElementById('password-error');
         const usernameError = document.getElementById('username-error');
-        const newPasswordError = document.getElementById('new-password-error');
         const updateUsernameError = document.getElementById('update-username-error');
-        const postContent = document.getElementById('post-content');
-        const charCount = document.getElementById('char-count');
 
-        // 驗證使用者名稱格式
+        // 驗證用戶名稱格式
         function validateUsername(username) {
             const usernameRegex = /^[A-Za-z0-9]+$/;
             return usernameRegex.test(username);
@@ -280,51 +231,28 @@
             return passwordRegex.test(password);
         }
 
-        // 驗證貼文內容長度
-        function validatePostContent(content) {
-            return content.length <= 500;
-        }
-
-        // 更新字數計數器
-        function updateCharCount() {
-            const content = postContent.value;
-            const remaining = 500 - content.length;
-            charCount.textContent = `剩餘 ${remaining} 字`;
-            if (remaining < 0) {
-                charCount.classList.add('text-red-500');
-                charCount.classList.remove('text-gray-500');
-            } else {
-                charCount.classList.add('text-gray-500');
-                charCount.classList.remove('text-red-500');
-            }
-        }
-
-        // 格式化日期
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        // 跳轉到個人頁面
+        function goToProfile(username) {
+            window.location.href = `/Zyra/@${username}`;
         }
 
         // 顯示貼文
         function renderPosts(posts) {
             postsContainer.innerHTML = '';
+            loadingPosts.classList.add('hidden');
             posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
+
             posts.forEach(post => {
-                const formattedDate = formatDate(post.timestamp);
-                const isOwner = currentUser && currentUser.username === post.username;
-                const isAdmin = currentUser && currentUser.isAdmin;
-                
+                const isOwner = currentUser && (currentUser.username === post.username || currentUser.isAdmin);
                 const postElement = document.createElement('div');
-                postElement.className = 'bg-white rounded-xl shadow-md p-6 post-card';
+                postElement.className = 'bg-white rounded-lg shadow-sm p-6 transition duration-300 post-card';
                 postElement.setAttribute('data-post-id', post.id);
-                
+
                 let postHTML = `
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center">
-                            <div class="h-10 w-10 rounded-full overflow-hidden">
+                    <div class="flex items-start">
+                        <div class="h-12 w-12 rounded-full overflow-hidden mr-4">
                 `;
-                
+
                 if (post.avatar) {
                     postHTML += `<img src="${post.avatar}" class="h-full w-full object-cover" alt="${post.displayName || post.username}的頭像">`;
                 } else {
@@ -332,52 +260,47 @@
                                     ${(post.displayName || post.username).charAt(0).toUpperCase()}
                                 </div>`;
                 }
-                
+
                 postHTML += `
-                            </div>
-                            <div class="ml-3">
-                                <h4 class="font-bold text-gray-800">${post.displayName || post.username}</h4>
-                                <p class="text-sm text-gray-500">@${post.username}</p>
-                                <p class="text-sm text-gray-500">${formattedDate}</p>
-                            </div>
                         </div>
-                        <div class="flex space-x-2">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-bold text-gray-800 flex items-center user-link" onclick="goToProfile('${post.username}')">
+                                        ${post.displayName || post.username}
+                                        ${post.isVerified ? `
+                                        <span class="verified-badge ml-1 h-4 w-4">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </span>` : ''}
+                                    </h3>
+                                    <p class="text-sm text-gray-500">@${post.username} · ${new Date(post.timestamp).toLocaleString('zh-TW')}</p>
+                                </div>
                 `;
-                
-                if (isOwner || isAdmin) {
+
+                if (isOwner) {
                     postHTML += `
-                        <button class="delete-post-btn delete-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    `;
-                }
-                
-                if (isAdmin && post.username !== currentUser.username) {
-                    postHTML += `
-                        <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${post.username}">
+                        <button class="delete-post-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
                     `;
                 }
-                
+
                 postHTML += `
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
-                    </div>
-                    <div class="mt-6 border-t pt-4">
-                        <h5 class="font-bold text-gray-700 mb-2">留言 (${post.comments ? post.comments.length : 0})</h5>
-                        <div class="space-y-3 mb-4 comments-container-${post.id}">
+                            </div>
+                            <div class="mt-2">
+                                <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
+                            </div>
+                            <div class="mt-6 border-t pt-4">
+                                <h5 class="font-bold text-gray-700 mb-2">留言 (${post.comments ? post.comments.length : 0})</h5>
+                                <div class="space-y-3 mb-4 comments-container-${post.id}">
                 `;
-                
+
                 if (post.comments) {
                     post.comments.forEach((comment, index) => {
-                        const commentDate = formatDate(comment.timestamp);
                         postHTML += `
                             <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-start">
                                 <div class="flex items-center">
@@ -393,15 +316,15 @@
                         postHTML += `
                                     </div>
                                     <div class="ml-2">
-                                        <span class="font-medium text-gray-800">${comment.displayName || comment.username}</span>
+                                        <span class="font-medium text-gray-800 user-link" onclick="goToProfile('${comment.username}')">${comment.displayName || comment.username}</span>
                                         <span class="text-xs text-gray-500 ml-2">@${comment.username}</span>
-                                        <span class="text-xs text-gray-500 ml-2">${commentDate}</span>
+                                        <span class="text-xs text-gray-500 ml-2">${new Date(comment.timestamp).toLocaleString('zh-TW')}</span>
                                         <p class="text-gray-700 mt-1 text-sm">${comment.content}</p>
                                     </div>
                                 </div>
                                 <div class="flex space-x-2">
                         `;
-                        if (isOwner || isAdmin) {
+                        if (isOwner) {
                             postHTML += `
                                 <button class="delete-comment-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}" data-comment-index="${index}">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -410,7 +333,7 @@
                                 </button>
                             `;
                         }
-                        if (isAdmin && comment.username !== currentUser.username) {
+                        if (currentUser && currentUser.isAdmin && comment.username !== currentUser.username) {
                             postHTML += `
                                 <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${comment.username}">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -425,7 +348,7 @@
                         `;
                     });
                 }
-                
+
                 postHTML += `
                         </div>
                         <div class="flex">
@@ -434,7 +357,7 @@
                         </div>
                     </div>
                 `;
-                
+
                 postElement.innerHTML = postHTML;
                 postsContainer.appendChild(postElement);
             });
@@ -513,103 +436,41 @@
         // 更新 UI 狀態
         function updateUIState() {
             if (currentUser) {
-                welcomeSection.classList.add('hidden');
+                postSection.classList.remove('hidden');
                 navButtons.classList.add('hidden');
                 userInfo.classList.remove('hidden');
                 usernameDisplay.textContent = currentUser.displayName || currentUser.username;
+                if (currentUser.avatar) {
+                    navAvatarText.classList.add('hidden');
+                    navAvatarImg.src = currentUser.avatar;
+                    navAvatarImg.classList.remove('hidden');
+                } else {
+                    navAvatarText.textContent = (currentUser.displayName || currentUser.username).charAt(0).toUpperCase();
+                    navAvatarText.classList.remove('hidden');
+                    navAvatarImg.classList.add('hidden');
+                }
                 if (currentUser.isAdmin) {
                     adminPanelBtn.classList.remove('hidden');
                 } else {
                     adminPanelBtn.classList.add('hidden');
                 }
-                updateAvatar();
-                if (currentUser.isBanned) {
-                    contentSection.classList.add('hidden');
-                    bannedSection.classList.remove('hidden');
-                    updateBanCountdown();
-                } else {
-                    contentSection.classList.remove('hidden');
-                    bannedSection.classList.add('hidden');
-                }
             } else {
-                welcomeSection.classList.remove('hidden');
-                contentSection.classList.add('hidden');
-                bannedSection.classList.add('hidden');
+                postSection.classList.add('hidden');
                 navButtons.classList.remove('hidden');
                 userInfo.classList.add('hidden');
-                adminPanelBtn.classList.add('hidden');
-            }
-        }
-
-        // 更新停權倒計時
-        function updateBanCountdown() {
-            if (!currentUser || !currentUser.isBanned) return;
-            const totalDays = 7;
-            const remainingDays = currentUser.banDays;
-            const progress = (remainingDays / totalDays) * 251;
-            countdownCircle.style.strokeDashoffset = 251 - progress;
-            countdownDays.textContent = remainingDays;
-            daysCount.textContent = remainingDays;
-        }
-
-        // 更新頭像顯示
-        function updateAvatar() {
-            if (currentUser && currentUser.avatar) {
-                navAvatarText.classList.add('hidden');
-                navAvatarImg.src = currentUser.avatar;
-                navAvatarImg.classList.remove('hidden');
-                profileAvatar.classList.add('hidden');
-                profileAvatarImg.src = currentUser.avatar;
-                profileAvatarImg.classList.remove('hidden');
-            } else {
-                navAvatarText.textContent = currentUser ? (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() : '';
-                navAvatarText.classList.remove('hidden');
-                navAvatarImg.classList.add('hidden');
-                profileAvatar.textContent = currentUser ? (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() : '';
-                profileAvatar.classList.remove('hidden');
-                profileAvatarImg.classList.add('hidden');
             }
         }
 
         // 顯示個人資料
-        function showProfile() {
+        function showProfileModal() {
             if (currentUser) {
-                updateAvatar();
-                document.getElementById('profile-displayname').textContent = currentUser.displayName || currentUser.username;
-                document.getElementById('profile-username').textContent = currentUser.username;
-                document.getElementById('profile-about').textContent = currentUser.about || '未設置';
-                document.getElementById('profile-email').textContent = currentUser.email || '未設置';
                 document.getElementById('update-displayname').value = currentUser.displayName || currentUser.username;
                 document.getElementById('update-username').value = currentUser.username;
                 document.getElementById('update-about').value = currentUser.about || '';
                 document.getElementById('update-email').value = currentUser.email || '';
-                document.getElementById('current-password').value = '';
-                document.getElementById('new-password').value = '';
-                document.getElementById('confirm-password').value = '';
-                showProfileTab();
                 profileModal.classList.remove('hidden');
                 settingsDropdown.classList.remove('active');
             }
-        }
-
-        // 顯示個人資料選項卡
-        function showProfileTab() {
-            profileTab.classList.remove('hidden');
-            passwordTab.classList.add('hidden');
-            profileTabBtn.classList.add('tab-active');
-            profileTabBtn.classList.remove('text-gray-500');
-            passwordTabBtn.classList.remove('tab-active');
-            passwordTabBtn.classList.add('text-gray-500');
-        }
-
-        // 顯示密碼選項卡
-        function showPasswordTab() {
-            profileTab.classList.add('hidden');
-            passwordTab.classList.remove('hidden');
-            profileTabBtn.classList.remove('tab-active');
-            profileTabBtn.classList.add('text-gray-500');
-            passwordTabBtn.classList.add('tab-active');
-            passwordTabBtn.classList.remove('text-gray-500');
         }
 
         // 檢查並驗證儲存的 token
@@ -621,136 +482,35 @@
             }
         }
 
-        // Socket.IO 事件監聽
-        socket.on('connect', () => {
-            checkStoredToken();
-        });
-
-        socket.on('posts', (posts) => {
-            renderPosts(posts);
-        });
-
-        socket.on('verifyTokenResponse', (data) => {
-            if (data.success) {
-                currentUser = data.user;
-                updateUIState();
-            } else {
-                localStorage.removeItem('username');
-                localStorage.removeItem('password');
-                updateUIState();
-            }
-        });
-
-        socket.on('loginResponse', (data) => {
-            if (data.success) {
-                currentUser = data.user;
-                localStorage.setItem('username', currentUser.username);
-                localStorage.setItem('password', currentUser.password);
-                loginModal.classList.add('hidden');
-                updateUIState();
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('registerResponse', (data) => {
-            if (data.success) {
-                currentUser = data.user;
-                localStorage.setItem('username', currentUser.username);
-                localStorage.setItem('password', currentUser.password);
-                registerModal.classList.add('hidden');
-                updateUIState();
-                alert('註冊成功！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updateProfileResponse', (data) => {
-            if (data.success) {
-                localStorage.setItem('username', data.user.username);
-                currentUser = data.user;
-                updateUIState();
-                profileModal.classList.add('hidden');
-                alert('個人資料已更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updatePasswordResponse', (data) => {
-            if (data.success) {
-                localStorage.setItem('password', document.getElementById('new-password').value);
-                document.getElementById('current-password').value = '';
-                document.getElementById('new-password').value = '';
-                document.getElementById('confirm-password').value = '';
-                newPasswordError.classList.add('hidden');
-                alert('密碼已成功更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updateAvatarResponse', (data) => {
-            if (data.success) {
-                currentUser.avatar = data.avatar;
-                updateAvatar();
-                alert('頭像已更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('postResponse', (data) => {
-            if (!data.success) {
-                alert(data.message);
-            } else {
-                postContent.value = '';
-                updateCharCount();
-            }
-        });
-
-        socket.on('deletePostResponse', (data) => {
-            if (data.success) {
-                hideDeleteConfirmDialog();
-                alert('貼文已成功刪除！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('deleteCommentResponse', (data) => {
-            if (data.success) {
-                hideDeleteConfirmDialog();
-                alert('留言已成功刪除！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('addCommentResponse', (data) => {
-            if (!data.success) {
-                alert(data.message);
-            }
-        });
-
-        socket.on('banUserResponse', (data) => {
-            if (data.success) {
-                adminPanelModal.classList.add('hidden');
-                alert(data.message);
-            } else {
-                alert(data.message);
-            }
-        });
-
         // 事件監聽器
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('start-btn').addEventListener('click', () => {
-                registerModal.classList.remove('hidden');
+            checkStoredToken();
+            socket.emit('getPosts');
+
+            postBtn.addEventListener('click', () => {
+                if (!currentUser) {
+                    alert('請先登入才能發文');
+                    return;
+                }
+                if (currentUser.isBanned) {
+                    alert('您的帳號已被停權，無法發文');
+                    return;
+                }
+                const content = postContent.value.trim();
+                if (!content) {
+                    alert('請輸入貼文內容');
+                    return;
+                }
+                socket.emit('addPost', { username: currentUser.username, content });
+                postContent.value = '';
             });
 
             document.getElementById('login-nav-btn').addEventListener('click', () => {
                 loginModal.classList.remove('hidden');
+            });
+
+            document.getElementById('register-nav-btn').addEventListener('click', () => {
+                registerModal.classList.remove('hidden');
             });
 
             document.getElementById('login-btn').addEventListener('click', () => {
@@ -761,10 +521,6 @@
                     return;
                 }
                 socket.emit('login', { identifier, password });
-            });
-
-            document.getElementById('register-nav-btn').addEventListener('click', () => {
-                registerModal.classList.remove('hidden');
             });
 
             document.getElementById('register-btn').addEventListener('click', () => {
@@ -804,7 +560,6 @@
                     this.closest('.modal').classList.add('hidden');
                     passwordError.classList.add('hidden');
                     usernameError.classList.add('hidden');
-                    newPasswordError.classList.add('hidden');
                     updateUsernameError.classList.add('hidden');
                 });
             });
@@ -814,49 +569,29 @@
                     this.closest('.modal').classList.add('hidden');
                     passwordError.classList.add('hidden');
                     usernameError.classList.add('hidden');
-                    newPasswordError.classList.add('hidden');
                     updateUsernameError.classList.add('hidden');
                 });
             });
 
-            document.getElementById('settings-btn').addEventListener('click', () => {
+            settingsBtn.addEventListener('click', () => {
                 settingsDropdown.classList.toggle('active');
             });
 
-            document.getElementById('profile-btn').addEventListener('click', showProfile);
+            profileBtn.addEventListener('click', showProfileModal);
 
-            document.getElementById('admin-panel-btn').addEventListener('click', () => {
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('username');
+                localStorage.removeItem('password');
+                currentUser = null;
+                settingsDropdown.classList.remove('active');
+                updateUIState();
+                socket.emit('getPosts');
+            });
+
+            adminPanelBtn.addEventListener('click', () => {
                 showAdminPanel('');
                 settingsDropdown.classList.remove('active');
             });
-
-            document.getElementById('logout-btn').addEventListener('click', () => {
-                currentUser = null;
-                localStorage.removeItem('username');
-                localStorage.removeItem('password');
-                updateUIState();
-                settingsDropdown.classList.remove('active');
-                alert('已成功登出');
-            });
-
-            document.getElementById('post-btn').addEventListener('click', () => {
-                const content = postContent.value.trim();
-                if (!content) {
-                    alert('請輸入貼文內容');
-                    return;
-                }
-                if (!validatePostContent(content)) {
-                    alert('貼文內容不得超過500個字元');
-                    return;
-                }
-                if (currentUser.isBanned) {
-                    alert('您的帳號已被停權，無法發布貼文');
-                    return;
-                }
-                socket.emit('createPost', { username: currentUser.username, content });
-            });
-
-            postContent.addEventListener('input', updateCharCount);
 
             document.getElementById('update-profile-btn').addEventListener('click', () => {
                 const newDisplayName = document.getElementById('update-displayname').value.trim();
@@ -872,98 +607,137 @@
                     return;
                 }
                 updateUsernameError.classList.add('hidden');
-                socket.emit('updateProfile', { username: currentUser.username, newUsername, newDisplayName, newAbout, newEmail });
+                socket.emit('updateProfile', { username: currentUser.username, newUsername, newDisplayName, newEmail, newAbout });
             });
 
-            document.getElementById('update-password-btn').addEventListener('click', () => {
-                const currentPassword = document.getElementById('current-password').value;
-                const newPassword = document.getElementById('new-password').value;
-                const confirmPassword = document.getElementById('confirm-password').value;
-                if (!currentPassword || !newPassword || !confirmPassword) {
-                    alert('請填寫所有欄位');
+            banUserBtn.addEventListener('click', () => {
+                const username = banUsernameInput.value.trim();
+                const banDays = parseInt(banDaysInput.value);
+                if (!username || !banDays || banDays < 1) {
+                    alert('請填寫有效的用戶名稱和禁制天數');
                     return;
                 }
-                if (newPassword !== confirmPassword) {
-                    alert('新密碼與確認密碼不符');
-                    return;
-                }
-                if (!validatePassword(newPassword)) {
-                    newPasswordError.classList.remove('hidden');
-                    return;
-                }
-                newPasswordError.classList.add('hidden');
-                socket.emit('updatePassword', { username: currentUser.username, currentPassword, newPassword });
-            });
-
-            document.getElementById('change-avatar-btn').addEventListener('click', () => {
-                avatarInput.click();
-            });
-
-            avatarInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-                if (!file.type.match('image.*')) {
-                    alert('請選擇圖片文件');
-                    return;
-                }
-                if (file.size > 2 * 1024 * 1024) {
-                    alert('圖片大小不能超過2MB');
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    socket.emit('updateAvatar', { username: currentUser.username, avatar: e.target.result });
-                };
-                reader.readAsDataURL(file);
+                socket.emit('banUser', { adminUsername: currentUser.username, targetUsername: username, banDays });
             });
 
             confirmDeleteBtn.addEventListener('click', () => {
                 if (currentDeletePostId) {
                     socket.emit('deletePost', { postId: currentDeletePostId, username: currentUser.username });
                 } else if (currentDeleteComment) {
-                    socket.emit('deleteComment', {
-                        postId: currentDeleteComment.postId,
-                        commentIndex: parseInt(currentDeleteComment.commentIndex),
-                        username: currentUser.username
-                    });
+                    socket.emit('deleteComment', { postId: currentDeleteComment.postId, commentIndex: currentDeleteComment.commentIndex, username: currentUser.username });
                 }
             });
 
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmDialog);
+        });
 
-            banUserBtn.addEventListener('click', () => {
-                const targetUsername = banUsernameInput.value.trim();
-                const banDays = parseInt(banDaysInput.value);
-                if (!targetUsername || !banDays || banDays < 1) {
-                    alert('請輸入有效的用戶名稱和禁制天數');
-                    return;
-                }
-                socket.emit('banUser', { adminUsername: currentUser.username, targetUsername, banDays });
-            });
+        // Socket.IO 事件監聽
+        socket.on('connect', () => {
+            checkStoredToken();
+        });
 
-            document.addEventListener('click', (event) => {
-                if (!event.target.closest('#settings-btn') && !event.target.closest('#settings-dropdown')) {
-                    settingsDropdown.classList.remove('active');
-                }
-            });
-
-            document.querySelector('.dialog-overlay').addEventListener('click', hideDeleteConfirmDialog);
-
-            const lockIcon = document.querySelector('.lock-animation');
-            if (lockIcon) {
-                setInterval(() => {
-                    lockIcon.classList.add('lock-animation');
-                    setTimeout(() => {
-                        lockIcon.classList.remove('lock-animation');
-                    }, 500);
-                }, 5000);
+        socket.on('getPostsResponse', (data) => {
+            if (data.success) {
+                renderPosts(data.posts);
+            } else {
+                alert(data.message);
             }
+        });
 
-            profileTabBtn.addEventListener('click', showProfileTab);
-            passwordTabBtn.addEventListener('click', showPasswordTab);
+        socket.on('addPostResponse', (data) => {
+            if (data.success) {
+                socket.emit('getPosts');
+            } else {
+                alert(data.message);
+            }
+        });
 
-            updateUIState();
-            updateCharCount();
+        socket.on('verifyTokenResponse', (data) => {
+            if (data.success) {
+                currentUser = data.user;
+                updateUIState();
+            } else {
+                localStorage.removeItem('username');
+                localStorage.removeItem('password');
+                updateUIState();
+            }
+        });
+
+        socket.on('loginResponse', (data) => {
+            if (data.success) {
+                currentUser = data.user;
+                localStorage.setItem('username', currentUser.username);
+                localStorage.setItem('password', currentUser.password);
+                loginModal.classList.add('hidden');
+                updateUIState();
+                socket.emit('getPosts');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('registerResponse', (data) => {
+            if (data.success) {
+                currentUser = data.user;
+                localStorage.setItem('username', currentUser.username);
+                localStorage.setItem('password', currentUser.password);
+                registerModal.classList.add('hidden');
+                updateUIState();
+                socket.emit('getPosts');
+                alert('註冊成功！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('updateProfileResponse', (data) => {
+            if (data.success) {
+                localStorage.setItem('username', data.user.username);
+                currentUser = data.user;
+                updateUIState();
+                profileModal.classList.add('hidden');
+                socket.emit('getPosts');
+                alert('個人資料已更新！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('deletePostResponse', (data) => {
+            if (data.success) {
+                hideDeleteConfirmDialog();
+                socket.emit('getPosts');
+                alert('貼文已成功刪除！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('deleteCommentResponse', (data) => {
+            if (data.success) {
+                hideDeleteConfirmDialog();
+                socket.emit('getPosts');
+                alert('留言已成功刪除！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('addCommentResponse', (data) => {
+            if (data.success) {
+                socket.emit('getPosts');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('banUserResponse', (data) => {
+            if (data.success) {
+                adminPanelModal.classList.add('hidden');
+                alert(data.message);
+            } else {
+                alert(data.message);
+            }
         });
     </script>
 </body>
