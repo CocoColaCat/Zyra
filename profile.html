@@ -29,6 +29,10 @@
             justify-content: center;
             box-shadow: 0 0 0 2px white;
         }
+        .comment-container {
+            max-height: 200px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -129,7 +133,6 @@
                 <div class="border-t border-gray-200 mt-4">
                     <div class="flex">
                         <button class="tab-active px-6 py-3 font-medium text-sm focus:outline-none">貼文</button>
-                        <button class="px-6 py-3 font-medium text-sm text-gray-500 hover:text-gray-700 focus:outline-none">範例1</button>
                     </div>
                 </div>
             </div>
@@ -239,6 +242,7 @@
         const profileJoinDate = document.getElementById('profile-joindate');
         const profileAvatar = document.getElementById('profile-avatar');
         const profileAvatarImg = document.getElementById('profile-avatar-img');
+        const verifiedBadge = document.getElementById('verified-badge');
         const postsContainer = document.getElementById('posts-container');
         const followBtn = document.getElementById('follow-btn');
         const editProfileBtn = document.getElementById('edit-profile-btn');
@@ -270,6 +274,11 @@
         function validatePassword(password) {
             const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
             return passwordRegex.test(password);
+        }
+
+        // 驗證留言內容長度
+        function validateCommentContent(content) {
+            return content.length > 0 && content.length <= 500;
         }
 
         // 格式化日期
@@ -305,6 +314,7 @@
             profileUsername.textContent = `@${user.username}`;
             profileAbout.textContent = user.about || '未設置';
             profileJoinDate.textContent = formatDate(user.createdAt);
+            verifiedBadge.classList.toggle('hidden', !user.isVerified);
             if (user.avatar) {
                 profileAvatar.classList.add('hidden');
                 profileAvatarImg.src = user.avatar;
@@ -366,7 +376,7 @@
                                 <div>
                                     <h3 class="font-bold text-gray-900 flex items-center">
                                         ${post.displayName || post.username}
-                                        <span class="verified-badge ml-1 h-4 w-4">
+                                        <span class="verified-badge ml-1 h-4 w-4 ${post.isVerified ? '' : 'hidden'}">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                                             </svg>
@@ -389,6 +399,54 @@
                             <div class="mt-2">
                                 <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
                             </div>
+                            <div class="mt-4 comment-container">
+                                <div class="comments-list space-y-4" data-post-id="${post.id}">
+                `;
+                // 渲染留言
+                if (post.comments && post.comments.length > 0) {
+                    post.comments.forEach((comment, index) => {
+                        const commentFormattedDate = formatPostDate(comment.timestamp);
+                        const isCommentOwner = currentUser && currentUser.username === comment.username;
+                        postHTML += `
+                            <div class="flex items-start">
+                                <div class="h-8 w-8 rounded-full overflow-hidden mr-3">
+                                    ${comment.avatar ? `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">` : 
+                                      `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">${(comment.displayName || comment.username).charAt(0).toUpperCase()}</div>`}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900 flex items-center">
+                                                ${comment.displayName || comment.username}
+                                                <span class="verified-badge ml-1 h-4 w-4 ${comment.isVerified ? '' : 'hidden'}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </span>
+                                            </p>
+                                            <p class="text-xs text-gray-500">@${comment.username} · ${commentFormattedDate}</p>
+                                        </div>
+                                        ${(isCommentOwner || isAdmin) ? `
+                                            <button class="delete-comment-btn text-gray-400 hover:text-red-500 transition-colors" data-post-id="${post.id}" data-comment-index="${index}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                    <p class="text-sm text-gray-700 mt-1">${comment.content}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                postHTML += `
+                                </div>
+                                <div class="mt-4 flex items-center">
+                                    <input type="text" class="comment-input flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="輸入留言..." data-post-id="${post.id}">
+                                    <button class="add-comment-btn ml-2 bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發布</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -402,6 +460,37 @@
                     const postId = this.getAttribute('data-post-id');
                     if (confirm('確定要刪除這篇貼文嗎？')) {
                         socket.emit('deletePost', { postId, username: currentUser.username });
+                    }
+                });
+            });
+
+            // 添加發布留言按鈕事件
+            document.querySelectorAll('.add-comment-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (!currentUser) {
+                        alert('請先登入才能留言');
+                        loginModal.classList.remove('hidden');
+                        return;
+                    }
+                    const postId = this.getAttribute('data-post-id');
+                    const commentInput = document.querySelector(`.comment-input[data-post-id="${postId}"]`);
+                    const content = commentInput.value.trim();
+                    if (!validateCommentContent(content)) {
+                        alert('留言內容必須為1-500個字元');
+                        return;
+                    }
+                    socket.emit('addComment', { postId, username: currentUser.username, content });
+                    commentInput.value = '';
+                });
+            });
+
+            // 添加刪除留言按鈕事件
+            document.querySelectorAll('.delete-comment-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const postId = this.getAttribute('data-post-id');
+                    const commentIndex = this.getAttribute('data-comment-index');
+                    if (confirm('確定要刪除這則留言嗎？')) {
+                        socket.emit('deleteComment', { postId, commentIndex: parseInt(commentIndex), username: currentUser.username });
                     }
                 });
             });
@@ -538,6 +627,15 @@
         socket.on('getUserPostsResponse', (data) => {
             console.log('getUserPostsResponse:', data);
             if (data.success) {
+                // 為每則貼文和留言添加 isVerified
+                data.posts.forEach(post => {
+                    post.isVerified = data.posts.some(p => p.username === post.username && p.isVerified);
+                    if (post.comments) {
+                        post.comments.forEach(comment => {
+                            comment.isVerified = data.posts.some(p => p.username === comment.username && p.isVerified);
+                        });
+                    }
+                });
                 renderPosts(data.posts);
             } else {
                 alert(data.message);
@@ -648,6 +746,26 @@
             if (data.success) {
                 socket.emit('getUserPosts', { username: targetUsername });
                 alert('貼文已成功刪除！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('addCommentResponse', (data) => {
+            console.log('addCommentResponse:', data);
+            if (data.success) {
+                socket.emit('getUserPosts', { username: targetUsername });
+                alert('留言已發布！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('deleteCommentResponse', (data) => {
+            console.log('deleteCommentResponse:', data);
+            if (data.success) {
+                socket.emit('getUserPosts', { username: targetUsername });
+                alert('留言已刪除！');
             } else {
                 alert(data.message);
             }
