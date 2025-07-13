@@ -134,7 +134,6 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-6">註冊</h2>
             <input id="register-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="暱稱（顯示名稱）">
             <input id="register-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="使用者名稱（僅限英文和數字）">
-            <input id="register-about" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="關於我（選填）">
             <input id="register-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="密碼（6個字符以上，包含英文和數字）">
             <p id="password-error" class="text-red-500 text-sm hidden">密碼必須為6個字符以上，包含英文和數字</p>
             <p id="username-error" class="text-red-500 text-sm hidden">使用者名稱只能包含英文和數字</p>
@@ -166,7 +165,7 @@
                 </div>
                 <p class="text-gray-700 mb-2">暱稱: <span id="profile-displayname"></span></p>
                 <p class="text-gray-700 mb-2">使用者名稱: <span id="profile-username"></span></p>
-                <p class="text-gray-700 mb-4">關於我: <span id="profile-about"></span></p>
+                <p class="text-gray-700 mb-2">關於我: <span id="profile-about"></span></p>
                 <p class="text-gray-700 mb-4">電子郵件: <span id="profile-email"></span></p>
                 <input id="update-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新暱稱">
                 <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱（僅限英文和數字）">
@@ -770,7 +769,6 @@
             document.getElementById('register-btn').addEventListener('click', () => {
                 const displayName = document.getElementById('register-displayname').value.trim();
                 const username = document.getElementById('register-username').value.trim();
-                const about = document.getElementById('register-about').value.trim();
                 const password = document.getElementById('register-password').value;
                 if (!username || !password) {
                     alert('請填寫所有必填欄位');
@@ -786,7 +784,7 @@
                 }
                 usernameError.classList.add('hidden');
                 passwordError.classList.add('hidden');
-                socket.emit('register', { username, displayName, about, password });
+                socket.emit('register', { username, displayName, about: '', password });
             });
 
             document.getElementById('to-register-btn').addEventListener('click', () => {
