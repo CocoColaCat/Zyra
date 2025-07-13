@@ -29,10 +29,6 @@
             justify-content: center;
             box-shadow: 0 0 0 2px white;
         }
-        .comment-container {
-            max-height: 200px;
-            overflow-y: auto;
-        }
     </style>
 </head>
 <body>
@@ -50,7 +46,14 @@
                         <span id="nav-avatar-text" class="text-indigo-800 font-bold"></span>
                         <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="用戶頭像">
                     </div>
-                    <span id="username-display" class="font-medium text-gray-800"></span>
+                    <div class="flex items-center">
+                        <span id="username-display" class="font-medium text-gray-800"></span>
+                        <span id="nav-verified-badge" class="verified-badge ml-1 h-5 w-5 hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </div>
                     <button id="settings-btn" class="text-gray-600 hover:text-gray-800">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -235,6 +238,7 @@
         const navButtons = document.getElementById('nav-buttons');
         const userInfo = document.getElementById('user-info');
         const usernameDisplay = document.getElementById('username-display');
+        const navVerifiedBadge = document.getElementById('nav-verified-badge');
         const settingsDropdown = document.getElementById('settings-dropdown');
         const profileDisplayName = document.getElementById('profile-displayname');
         const profileUsername = document.getElementById('profile-username');
@@ -276,9 +280,9 @@
             return passwordRegex.test(password);
         }
 
-        // 驗證留言內容長度
+        // 驗證留言內容（最多 500 字元）
         function validateCommentContent(content) {
-            return content.length > 0 && content.length <= 500;
+            return content.length <= 500;
         }
 
         // 格式化日期
@@ -287,7 +291,7 @@
             return `${date.getFullYear()}年${(date.getMonth() + 1).toString().padStart(2, '0')}月加入`;
         }
 
-        // 格式化貼文時間
+        // 格式化貼文或留言時間
         function formatPostDate(dateString) {
             const date = new Date(dateString);
             const now = new Date();
@@ -314,7 +318,6 @@
             profileUsername.textContent = `@${user.username}`;
             profileAbout.textContent = user.about || '未設置';
             profileJoinDate.textContent = formatDate(user.createdAt);
-            verifiedBadge.classList.toggle('hidden', !user.isVerified);
             if (user.avatar) {
                 profileAvatar.classList.add('hidden');
                 profileAvatarImg.src = user.avatar;
@@ -324,6 +327,8 @@
                 profileAvatar.classList.remove('hidden');
                 profileAvatarImg.classList.add('hidden');
             }
+            // 顯示驗證標誌
+            verifiedBadge.classList.toggle('hidden', !user.isVerified);
             // 根據當前用戶顯示按鈕
             if (currentUser && currentUser.username === user.username) {
                 editProfileBtn.classList.remove('hidden');
@@ -399,53 +404,49 @@
                             <div class="mt-2">
                                 <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
                             </div>
-                            <div class="mt-4 comment-container">
-                                <div class="comments-list space-y-4" data-post-id="${post.id}">
+                            <div class="comments-container mt-4 space-y-4">
                 `;
                 // 渲染留言
                 if (post.comments && post.comments.length > 0) {
                     post.comments.forEach((comment, index) => {
-                        const commentFormattedDate = formatPostDate(comment.timestamp);
+                        const commentDate = formatPostDate(comment.timestamp);
                         const isCommentOwner = currentUser && currentUser.username === comment.username;
                         postHTML += `
-                            <div class="flex items-start">
+                            <div class="flex items-start" data-comment-index="${index}">
                                 <div class="h-8 w-8 rounded-full overflow-hidden mr-3">
-                                    ${comment.avatar ? `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">` : 
-                                      `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">${(comment.displayName || comment.username).charAt(0).toUpperCase()}</div>`}
+                                    ${comment.avatar ? `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">` :
+                                    `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">${(comment.displayName || comment.username).charAt(0).toUpperCase()}</div>`}
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm font-medium text-gray-900 flex items-center">
-                                                ${comment.displayName || comment.username}
-                                                <span class="verified-badge ml-1 h-4 w-4 ${comment.isVerified ? '' : 'hidden'}">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </span>
-                                            </p>
-                                            <p class="text-xs text-gray-500">@${comment.username} · ${commentFormattedDate}</p>
+                                            <span class="font-bold text-gray-900">${comment.displayName || comment.username}</span>
+                                            <span class="verified-badge ml-1 h-4 w-4 ${comment.isVerified ? '' : 'hidden'}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                            <span class="text-sm text-gray-500 ml-2">@${comment.username} · ${commentDate}</span>
                                         </div>
                                         ${(isCommentOwner || isAdmin) ? `
                                             <button class="delete-comment-btn text-gray-400 hover:text-red-500 transition-colors" data-post-id="${post.id}" data-comment-index="${index}">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
                                             </button>
                                         ` : ''}
                                     </div>
-                                    <p class="text-sm text-gray-700 mt-1">${comment.content}</p>
+                                    <p class="text-gray-700">${comment.content}</p>
                                 </div>
                             </div>
                         `;
                     });
                 }
                 postHTML += `
-                                </div>
-                                <div class="mt-4 flex items-center">
-                                    <input type="text" class="comment-input flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="輸入留言..." data-post-id="${post.id}">
-                                    <button class="add-comment-btn ml-2 bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發布</button>
-                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center space-x-2">
+                                <input type="text" class="comment-input w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="撰寫留言..." data-post-id="${post.id}">
+                                <button class="add-comment-btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發布</button>
                             </div>
                         </div>
                     </div>
@@ -467,20 +468,24 @@
             // 添加發布留言按鈕事件
             document.querySelectorAll('.add-comment-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
+                    const postId = this.getAttribute('data-post-id');
+                    const input = document.querySelector(`.comment-input[data-post-id="${postId}"]`);
+                    const content = input.value.trim();
                     if (!currentUser) {
                         alert('請先登入才能留言');
                         loginModal.classList.remove('hidden');
                         return;
                     }
-                    const postId = this.getAttribute('data-post-id');
-                    const commentInput = document.querySelector(`.comment-input[data-post-id="${postId}"]`);
-                    const content = commentInput.value.trim();
+                    if (!content) {
+                        alert('請輸入留言內容');
+                        return;
+                    }
                     if (!validateCommentContent(content)) {
-                        alert('留言內容必須為1-500個字元');
+                        alert('留言內容不得超過500個字元');
                         return;
                     }
                     socket.emit('addComment', { postId, username: currentUser.username, content });
-                    commentInput.value = '';
+                    input.value = '';
                 });
             });
 
@@ -488,15 +493,15 @@
             document.querySelectorAll('.delete-comment-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const postId = this.getAttribute('data-post-id');
-                    const commentIndex = this.getAttribute('data-comment-index');
+                    const commentIndex = parseInt(this.getAttribute('data-comment-index'));
                     if (confirm('確定要刪除這則留言嗎？')) {
-                        socket.emit('deleteComment', { postId, commentIndex: parseInt(commentIndex), username: currentUser.username });
+                        socket.emit('deleteComment', { postId, commentIndex, username: currentUser.username });
                     }
                 });
             });
         }
 
-        // 更新導航列頭像
+        // 更新導航列頭像和驗證標誌
         function updateNavAvatar() {
             if (currentUser && currentUser.avatar) {
                 navAvatarText.classList.add('hidden');
@@ -507,6 +512,7 @@
                 navAvatarText.classList.remove('hidden');
                 navAvatarImg.classList.add('hidden');
             }
+            navVerifiedBadge.classList.toggle('hidden', !currentUser || !currentUser.isVerified);
         }
 
         // 更新編輯模態框頭像
@@ -553,6 +559,7 @@
                 navButtons.classList.add('hidden');
                 userInfo.classList.remove('hidden');
                 usernameDisplay.textContent = currentUser.displayName || currentUser.username;
+                navVerifiedBadge.classList.toggle('hidden', !currentUser.isVerified);
                 if (currentUser.isAdmin) {
                     adminPanelBtn.classList.remove('hidden');
                 } else {
@@ -563,6 +570,7 @@
                 navButtons.classList.remove('hidden');
                 userInfo.classList.add('hidden');
                 adminPanelBtn.classList.add('hidden');
+                navVerifiedBadge.classList.add('hidden');
             }
         }
 
@@ -627,15 +635,6 @@
         socket.on('getUserPostsResponse', (data) => {
             console.log('getUserPostsResponse:', data);
             if (data.success) {
-                // 為每則貼文和留言添加 isVerified
-                data.posts.forEach(post => {
-                    post.isVerified = data.posts.some(p => p.username === post.username && p.isVerified);
-                    if (post.comments) {
-                        post.comments.forEach(comment => {
-                            comment.isVerified = data.posts.some(p => p.username === comment.username && p.isVerified);
-                        });
-                    }
-                });
                 renderPosts(data.posts);
             } else {
                 alert(data.message);
@@ -773,19 +772,6 @@
 
         // 事件監聽器
         document.addEventListener('DOMContentLoaded', () => {
-            // 標籤切換
-            const tabs = document.querySelectorAll('[class^="px-6 py-3 font-medium text-sm"]');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    tabs.forEach(t => {
-                        t.classList.remove('tab-active');
-                        t.classList.add('text-gray-500', 'hover:text-gray-700');
-                    });
-                    this.classList.add('tab-active');
-                    this.classList.remove('text-gray-500', 'hover:text-gray-700');
-                });
-            });
-
             // 導航列事件
             document.getElementById('login-nav-btn').addEventListener('click', () => {
                 loginModal.classList.remove('hidden');
