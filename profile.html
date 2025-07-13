@@ -118,8 +118,13 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="mt-4">
+                        <div class="mt-4 flex items-center">
                             <p id="profile-about" class="text-gray-700">未設置</p>
+                            <span id="about-verified-badge" class="verified-badge ml-1 h-5 w-5 hidden">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
                         </div>
                         <div class="mt-4 flex items-center space-x-4 text-gray-600">
                             <div class="flex items-center">
@@ -247,6 +252,7 @@
         const profileAvatar = document.getElementById('profile-avatar');
         const profileAvatarImg = document.getElementById('profile-avatar-img');
         const verifiedBadge = document.getElementById('verified-badge');
+        const aboutVerifiedBadge = document.getElementById('about-verified-badge');
         const postsContainer = document.getElementById('posts-container');
         const followBtn = document.getElementById('follow-btn');
         const editProfileBtn = document.getElementById('edit-profile-btn');
@@ -329,6 +335,7 @@
             }
             // 顯示驗證標誌
             verifiedBadge.classList.toggle('hidden', !user.isVerified);
+            aboutVerifiedBadge.classList.toggle('hidden', !user.isVerified);
             // 根據當前用戶顯示按鈕
             if (currentUser && currentUser.username === user.username) {
                 editProfileBtn.classList.remove('hidden');
