@@ -3,35 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zyra - 首頁</title>
+    <title>Zyra - 向全世界的人發佈內容</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+            background-color: #f3f4f6;
         }
-        .post-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        .modal {
+            background: rgba(0, 0, 0, 0.5);
         }
-        .verified-badge {
-            background-color: #f59e0b;
-            color: white;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 0 2px white;
+        .modal-content {
+            max-width: 400px;
+        }
+        .post-card {
+            margin-bottom: 1.5rem;
+        }
+        .tab-active {
+            color: #4f46e5;
+            border-bottom: 2px solid #4f46e5;
+        }
+        .dropdown-content {
+            display: none;
+        }
+        .dropdown-content.active {
+            display: block;
+        }
+        .lock-animation {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <!-- 導航列 -->
     <nav class="bg-white shadow p-4 fixed top-0 left-0 right-0 z-50">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <a href="https://zyra.cococolacat.org/" class="text-2xl font-bold text-gray-800">Zyra</a>
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Zyra</h1>
             <div id="nav-buttons" class="space-x-4">
                 <button id="login-nav-btn" class="text-indigo-600 hover:text-indigo-800">登入</button>
                 <button id="register-nav-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">註冊</button>
@@ -42,21 +58,14 @@
                         <span id="nav-avatar-text" class="text-indigo-800 font-bold"></span>
                         <img id="nav-avatar-img" class="h-full w-full object-cover hidden" alt="用戶頭像">
                     </div>
-                    <div class="flex items-center">
-                        <span id="username-display" class="font-medium text-gray-800"></span>
-                        <span id="nav-verified-badge" class="verified-badge ml-1 h-5 w-5 hidden">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
-                    </div>
+                    <span id="username-display" class="font-medium text-gray-800"></span>
                     <button id="settings-btn" class="text-gray-600 hover:text-gray-800">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
                 </div>
-                <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-2 hidden">
+                <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-2">
                     <button id="profile-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">個人資料</button>
                     <button id="admin-panel-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hidden">管理員面板</button>
                     <button id="logout-btn" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">登出</button>
@@ -65,62 +74,41 @@
         </div>
     </nav>
 
-    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 pt-20">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- 發布貼文 -->
-            <div id="post-form" class="bg-white rounded-lg shadow-sm p-6 mb-6 hidden">
-                <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="分享你的想法..." rows="4"></textarea>
-                <div class="flex justify-between items-center">
-                    <span id="char-count" class="text-sm text-gray-500">0/280</span>
-                    <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">發布</button>
-                </div>
-            </div>
-
-            <!-- 貼文列表 -->
-            <div id="posts-container" class="space-y-6"></div>
+    <!-- 歡迎區塊 -->
+    <div id="welcome-section" class="min-h-screen flex items-center justify-center pt-16">
+        <div class="text-center">
+            <h1 class="text-5xl font-bold text-gray-800 mb-6">Zyra</h1>
+            <p class="text-lg text-gray-600 mb-8">分享你的想法，與世界連結</p>
+            <button id="start-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">開始使用</button>
         </div>
     </div>
 
-    <!-- 個人資料模態框 -->
-    <div id="profile-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
-        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">編輯個人資料</h2>
-            <div class="flex mb-4">
-                <button id="profile-tab-btn" class="tab-active px-4 py-2 text-indigo-600 font-medium">個人資料</button>
-                <button id="password-tab-btn" class="px-4 py-2 text-gray-500">更改密碼</button>
+    <!-- 內容區塊 -->
+    <div id="content-section" class="max-w-4xl mx-auto py-6 mt-16 hidden">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <textarea id="post-content" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="分享你的想法（最多500字元）" maxlength="500"></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <span id="char-count" class="text-sm text-gray-500">剩餘 500 字</span>
+                <button id="post-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">發布</button>
             </div>
-            <div id="profile-tab">
-                <div class="flex items-center mb-4">
-                    <div id="edit-avatar" class="h-12 w-12 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center"></div>
-                    <img id="edit-avatar-img" class="h-12 w-12 rounded-full object-cover hidden" alt="用戶頭像">
-                    <button id="change-avatar-btn-modal" class="ml-4 text-indigo-600 hover:underline">更改頭像</button>
-                    <input id="avatar-input" type="file" accept="image/*" class="hidden">
-                </div>
-                <p class="text-gray-700 mb-2">暱稱: <span id="edit-displayname-text"></span></p>
-                <p class="text-gray-700 mb-2">使用者名稱: <span id="edit-username"></span></p>
-                <p class="text-gray-700 mb-2">關於我: <span id="edit-about"></span></p>
-                <p class="text-gray-700 mb-4">電子郵件: <span id="edit-email"></span></p>
-                <input id="update-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新暱稱">
-                <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱（僅限英文和數字）">
-                <input id="update-about" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="關於我（選填）">
-                <input id="update-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="電子郵件（選填）">
-                <p id="update-username-error" class="text-red-500 text-sm hidden">新使用者名稱只能包含英文和數字</p>
-                <button id="update-profile-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更新資料</button>
-            </div>
-            <div id="password-tab" class="hidden">
-                <input id="current-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="目前密碼">
-                <input id="new-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新密碼（6個字符以上，包含英文和數字）">
-                <p id="new-password-error" class="text-red-500 text-sm hidden">新密碼必須為6個字符以上，包含英文和數字</p>
-                <input id="confirm-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="確認新密碼">
-                <button id="update-password-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更改密碼</button>
-            </div>
-            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
         </div>
-        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+        <div id="posts-container" class="space-y-6"></div>
+    </div>
+
+    <!-- 停權區塊 -->
+    <div id="banned-section" class="min-h-screen flex items-center justify-center pt-16 hidden">
+        <div class="text-center">
+            <svg class="lock-animation mx-auto h-16 w-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v4c0 1.104.896 2 2 2h2c1.104 0 2-.896 2-2v-2m2-6h6m-6 0v6m0-6V5c0-1.104-.896-2-2-2H8c-1.104 0-2 .896-2 2v2" />
+            </svg>
+            <h2 class="text-2xl font-bold text-gray-800 mt-4">您的帳號已被停權</h2>
+            <p class="text-gray-600 mt-2">剩餘 <span id="days-count">0</span> 天</p>
+            <svg class="mx-auto mt-4" width="100" height="100">
+                <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none" />
+                <circle id="countdown-circle" cx="50" cy="50" r="40" stroke="#ef4444" stroke-width="8" fill="none" stroke-dasharray="251" stroke-dashoffset="0" />
+                <text id="countdown-days" x="50" y="55" text-anchor="middle" font-size="20" fill="#1f2937">0</text>
+            </svg>
+        </div>
     </div>
 
     <!-- 登入模態框 -->
@@ -160,39 +148,124 @@
         <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
     </div>
 
+    <!-- 個人資料模態框 -->
+    <div id="profile-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">個人資料</h2>
+            <div class="flex mb-4">
+                <button id="profile-tab-btn" class="tab-active px-4 py-2 text-indigo-600 font-medium">個人資料</button>
+                <button id="password-tab-btn" class="px-4 py-2 text-gray-500">更改密碼</button>
+            </div>
+            <div id="profile-tab">
+                <div class="flex items-center mb-4">
+                    <div id="profile-avatar" class="h-12 w-12 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center"></div>
+                    <img id="profile-avatar-img" class="h-12 w-12 rounded-full object-cover hidden" alt="用戶頭像">
+                    <button id="change-avatar-btn" class="ml-4 text-indigo-600 hover:underline">更改頭像</button>
+                    <input id="avatar-input" type="file" accept="image/*" class="hidden">
+                </div>
+                <p class="text-gray-700 mb-2">暱稱: <span id="profile-displayname"></span></p>
+                <p class="text-gray-700 mb-2">使用者名稱: <span id="profile-username"></span></p>
+                <p class="text-gray-700 mb-2">關於我: <span id="profile-about"></span></p>
+                <p class="text-gray-700 mb-4">電子郵件: <span id="profile-email"></span></p>
+                <input id="update-displayname" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新暱稱">
+                <input id="update-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新使用者名稱（僅限英文和數字）">
+                <input id="update-about" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="關於我（選填）">
+                <input id="update-email" type="email" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="電子郵件（選填）">
+                <p id="update-username-error" class="text-red-500 text-sm hidden">新使用者名稱只能包含英文和數字</p>
+                <button id="update-profile-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更新資料</button>
+            </div>
+            <div id="password-tab" class="hidden">
+                <input id="current-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="目前密碼">
+                <input id="new-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="新密碼（6個字符以上，包含英文和數字）">
+                <p id="new-password-error" class="text-red-500 text-sm hidden">新密碼必須為6個字符以上，包含英文和數字</p>
+                <input id="confirm-password" type="password" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="確認新密碼">
+                <button id="update-password-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">更改密碼</button>
+            </div>
+            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+    </div>
+
+    <!-- 管理員面板模態框 -->
+    <div id="admin-panel-modal" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md relative z-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員面板</h2>
+            <input id="ban-username" type="text" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="要禁制的用戶名稱">
+            <input id="ban-days" type="number" min="1" class="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="禁制天數">
+            <button id="ban-user-btn" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">禁制用戶</button>
+            <button class="close-modal absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+    </div>
+
+    <!-- 刪除確認對話框 -->
+    <div id="delete-confirm-dialog" class="fixed inset-0 modal flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-sm relative z-10">
+            <h2 id="delete-confirm-title" class="text-xl font-bold text-gray-800 mb-4">確定要刪除這篇貼文嗎？</h2>
+            <div class="flex justify-end space-x-4">
+                <button id="cancel-delete-btn" class="px-4 py-2 text-gray-600 hover:text-gray-800">取消</button>
+                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">確認</button>
+            </div>
+        </div>
+        <div class="dialog-overlay absolute inset-0 bg-black opacity-50"></div>
+    </div>
+
     <script>
         // 初始化 Socket.IO
         const socket = io('https://zyra-backend-9317.onrender.com');
 
         // 當前登入用戶
         let currentUser = null;
+        let currentDeletePostId = null;
+        let currentDeleteComment = null;
 
         // DOM 元素
+        const loginModal = document.getElementById('login-modal');
+        const registerModal = document.getElementById('register-modal');
+        const profileModal = document.getElementById('profile-modal');
+        const adminPanelModal = document.getElementById('admin-panel-modal');
+        const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
+        const deleteConfirmTitle = document.getElementById('delete-confirm-title');
+        const welcomeSection = document.getElementById('welcome-section');
+        const contentSection = document.getElementById('content-section');
+        const bannedSection = document.getElementById('banned-section');
         const navButtons = document.getElementById('nav-buttons');
         const userInfo = document.getElementById('user-info');
         const usernameDisplay = document.getElementById('username-display');
-        const navVerifiedBadge = document.getElementById('nav-verified-badge');
-        const settingsDropdown = document.getElementById('settings-dropdown');
-        const postForm = document.getElementById('post-form');
-        const postContent = document.getElementById('post-content');
-        const charCount = document.getElementById('char-count');
         const postsContainer = document.getElementById('posts-container');
-        const profileModal = document.getElementById('profile-modal');
-        const loginModal = document.getElementById('login-modal');
-        const registerModal = document.getElementById('register-modal');
-        const editAvatar = document.getElementById('edit-avatar');
-        const editAvatarImg = document.getElementById('edit-avatar-img');
-        const updateUsernameError = document.getElementById('update-username-error');
-        const newPasswordError = document.getElementById('new-password-error');
+        const settingsDropdown = document.getElementById('settings-dropdown');
         const profileTab = document.getElementById('profile-tab');
         const passwordTab = document.getElementById('password-tab');
         const profileTabBtn = document.getElementById('profile-tab-btn');
         const passwordTabBtn = document.getElementById('password-tab-btn');
         const navAvatarText = document.getElementById('nav-avatar-text');
         const navAvatarImg = document.getElementById('nav-avatar-img');
-        const adminPanelBtn = document.getElementById('admin-panel-btn');
-        const changeAvatarBtnModal = document.getElementById('change-avatar-btn-modal');
+        const profileAvatar = document.getElementById('profile-avatar');
+        const profileAvatarImg = document.getElementById('profile-avatar-img');
         const avatarInput = document.getElementById('avatar-input');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const countdownCircle = document.getElementById('countdown-circle');
+        const countdownDays = document.getElementById('countdown-days');
+        const daysCount = document.getElementById('days-count');
+        const adminPanelBtn = document.getElementById('admin-panel-btn');
+        const banUserBtn = document.getElementById('ban-user-btn');
+        const banUsernameInput = document.getElementById('ban-username');
+        const banDaysInput = document.getElementById('ban-days');
+        const passwordError = document.getElementById('password-error');
+        const usernameError = document.getElementById('username-error');
+        const newPasswordError = document.getElementById('new-password-error');
+        const updateUsernameError = document.getElementById('update-username-error');
+        const postContent = document.getElementById('post-content');
+        const charCount = document.getElementById('char-count');
 
         // 驗證使用者名稱格式
         function validateUsername(username) {
@@ -206,54 +279,51 @@
             return passwordRegex.test(password);
         }
 
-        // 驗證貼文或留言內容（最多 280 字元）
+        // 驗證貼文內容長度
         function validatePostContent(content) {
-            return content.length <= 280;
+            return content.length <= 500;
         }
 
-        // 驗證留言內容（最多 500 字元）
-        function validateCommentContent(content) {
-            return content.length <= 500;
+        // 更新字數計數器
+        function updateCharCount() {
+            const content = postContent.value;
+            const remaining = 500 - content.length;
+            charCount.textContent = `剩餘 ${remaining} 字`;
+            if (remaining < 0) {
+                charCount.classList.add('text-red-500');
+                charCount.classList.remove('text-gray-500');
+            } else {
+                charCount.classList.add('text-gray-500');
+                charCount.classList.remove('text-red-500');
+            }
         }
 
         // 格式化日期
         function formatDate(dateString) {
             const date = new Date(dateString);
-            return `${date.getFullYear()}年${(date.getMonth() + 1).toString().padStart(2, '0')}月加入`;
-        }
-
-        // 格式化貼文或留言時間
-        function formatPostDate(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            if (diffHours < 24) {
-                return `${diffHours}小時前`;
-            }
             return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
         }
 
-        // 渲染貼文
+        // 顯示貼文
         function renderPosts(posts) {
-            console.log('Rendering posts:', posts);
             postsContainer.innerHTML = '';
-            if (posts.length === 0) {
-                postsContainer.innerHTML = '<p class="text-gray-600 text-center">目前沒有貼文</p>';
-                return;
-            }
             posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
             posts.forEach(post => {
-                const formattedDate = formatPostDate(post.timestamp);
+                const formattedDate = formatDate(post.timestamp);
                 const isOwner = currentUser && currentUser.username === post.username;
                 const isAdmin = currentUser && currentUser.isAdmin;
+                
                 const postElement = document.createElement('div');
-                postElement.className = 'bg-white rounded-lg shadow-sm p-6 transition duration-300 post-card';
+                postElement.className = 'bg-white rounded-xl shadow-md p-6 post-card';
                 postElement.setAttribute('data-post-id', post.id);
+                
                 let postHTML = `
-                    <div class="flex items-start">
-                        <div class="h-12 w-12 rounded-full overflow-hidden mr-4 cursor-pointer" data-username="${post.username}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-full overflow-hidden">
                 `;
+                
                 if (post.avatar) {
                     postHTML += `<img src="${post.avatar}" class="h-full w-full object-cover" alt="${post.displayName || post.username}的頭像">`;
                 } else {
@@ -261,91 +331,133 @@
                                     ${(post.displayName || post.username).charAt(0).toUpperCase()}
                                 </div>`;
                 }
+                
                 postHTML += `
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="font-bold text-gray-800">${post.displayName || post.username}</h4>
+                                <p class="text-sm text-gray-500">@${post.username}</p>
+                                <p class="text-sm text-gray-500">${formattedDate}</p>
+                            </div>
                         </div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-bold text-gray-900 flex items-center">
-                                        ${post.displayName || post.username}
-                                        <span class="verified-badge ml-1 h-4 w-4 ${post.isVerified ? '' : 'hidden'}">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                            </svg>
-                                        </span>
-                                    </h3>
-                                    <p class="text-sm text-gray-500">@${post.username} · ${formattedDate}</p>
-                                </div>
+                        <div class="flex space-x-2">
                 `;
+                
                 if (isOwner || isAdmin) {
                     postHTML += `
-                        <button class="delete-post-btn text-gray-400 hover:text-red-500 transition-colors" data-post-id="${post.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <button class="delete-post-btn delete-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                             </svg>
                         </button>
                     `;
                 }
+                
+                if (isAdmin && post.username !== currentUser.username) {
+                    postHTML += `
+                        <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${post.username}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
+                            </svg>
+                        </button>
+                    `;
+                }
+                
                 postHTML += `
-                            </div>
-                            <div class="mt-2">
-                                <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
-                            </div>
-                            <div class="comments-container mt-4 space-y-4">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
+                    </div>
+                    <div class="mt-6 border-t pt-4">
+                        <h5 class="font-bold text-gray-700 mb-2">留言 (${post.comments ? post.comments.length : 0})</h5>
+                        <div class="space-y-3 mb-4 comments-container-${post.id}">
                 `;
-                if (post.comments && post.comments.length > 0) {
+                
+                if (post.comments) {
                     post.comments.forEach((comment, index) => {
-                        const commentDate = formatPostDate(comment.timestamp);
-                        const isCommentOwner = currentUser && currentUser.username === comment.username;
+                        const commentDate = formatDate(comment.timestamp);
                         postHTML += `
-                            <div class="flex items-start" data-comment-index="${index}">
-                                <div class="h-8 w-8 rounded-full overflow-hidden mr-3 cursor-pointer" data-username="${comment.username}">
-                                    ${comment.avatar ? `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">` :
-                                    `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">${(comment.displayName || comment.username).charAt(0).toUpperCase()}</div>`}
-                                </div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <span class="font-bold text-gray-900">${comment.displayName || comment.username}</span>
-                                            <span class="verified-badge ml-1 h-4 w-4 ${comment.isVerified ? '' : 'hidden'}">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                                </svg>
-                                            </span>
-                                            <span class="text-sm text-gray-500 ml-2">@${comment.username} · ${commentDate}</span>
-                                        </div>
-                                        ${(isCommentOwner || isAdmin) ? `
-                                            <button class="delete-comment-btn text-gray-400 hover:text-red-500 transition-colors" data-post-id="${post.id}" data-comment-index="${index}">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        ` : ''}
+                            <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-start">
+                                <div class="flex items-center">
+                                    <div class="h-6 w-6 rounded-full overflow-hidden">
+                        `;
+                        if (comment.avatar) {
+                            postHTML += `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">`;
+                        } else {
+                            postHTML += `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center text-xs">
+                                            ${(comment.displayName || comment.username).charAt(0).toUpperCase()}
+                                        </div>`;
+                        }
+                        postHTML += `
                                     </div>
-                                    <p class="text-gray-700">${comment.content}</p>
+                                    <div class="ml-2">
+                                        <span class="font-medium text-gray-800">${comment.displayName || comment.username}</span>
+                                        <span class="text-xs text-gray-500 ml-2">@${comment.username}</span>
+                                        <span class="text-xs text-gray-500 ml-2">${commentDate}</span>
+                                        <p class="text-gray-700 mt-1 text-sm">${comment.content}</p>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                        `;
+                        if (isOwner || isAdmin) {
+                            postHTML += `
+                                <button class="delete-comment-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}" data-comment-index="${index}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            `;
+                        }
+                        if (isAdmin && comment.username !== currentUser.username) {
+                            postHTML += `
+                                <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${comment.username}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
+                                    </svg>
+                                </button>
+                            `;
+                        }
+                        postHTML += `
                                 </div>
                             </div>
                         `;
                     });
                 }
+                
                 postHTML += `
-                            </div>
-                            <div class="mt-4 flex items-center space-x-2">
-                                <input type="text" class="comment-input w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="撰寫留言..." data-post-id="${post.id}">
-                                <button class="add-comment-btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發布</button>
-                            </div>
+                        </div>
+                        <div class="flex">
+                            <input type="text" class="comment-input flex-grow border border-gray-300 rounded-l-lg p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="添加留言...">
+                            <button class="add-comment-btn bg-indigo-600 text-white px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發送</button>
                         </div>
                     </div>
                 `;
+                
                 postElement.innerHTML = postHTML;
                 postsContainer.appendChild(postElement);
             });
 
-            // 添加頭像點擊事件
-            document.querySelectorAll('.rounded-full[data-username]').forEach(avatar => {
-                avatar.addEventListener('click', () => {
-                    const username = avatar.getAttribute('data-username');
-                    window.location.href = `https://zyra.cococolacat.org/profile.html?user=@${username}`;
+            // 添加留言按鈕事件
+            document.querySelectorAll('.add-comment-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (!currentUser) {
+                        alert('請先登入才能留言');
+                        return;
+                    }
+                    if (currentUser.isBanned) {
+                        alert('您的帳號已被停權，無法留言');
+                        return;
+                    }
+                    const postId = this.getAttribute('data-post-id');
+                    const commentInput = this.previousElementSibling;
+                    const content = commentInput.value.trim();
+                    if (!content) {
+                        alert('請輸入留言內容');
+                        return;
+                    }
+                    socket.emit('addComment', { postId, username: currentUser.username, content });
+                    commentInput.value = '';
                 });
             });
 
@@ -353,33 +465,7 @@
             document.querySelectorAll('.delete-post-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const postId = this.getAttribute('data-post-id');
-                    if (confirm('確定要刪除這篇貼文嗎？')) {
-                        socket.emit('deletePost', { postId, username: currentUser.username });
-                    }
-                });
-            });
-
-            // 添加發布留言按鈕事件
-            document.querySelectorAll('.add-comment-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const postId = this.getAttribute('data-post-id');
-                    const input = document.querySelector(`.comment-input[data-post-id="${postId}"]`);
-                    const content = input.value.trim();
-                    if (!currentUser) {
-                        alert('請先登入才能留言');
-                        loginModal.classList.remove('hidden');
-                        return;
-                    }
-                    if (!content) {
-                        alert('請輸入留言內容');
-                        return;
-                    }
-                    if (!validateCommentContent(content)) {
-                        alert('留言內容不得超過500個字元');
-                        return;
-                    }
-                    socket.emit('addComment', { postId, username: currentUser.username, content });
-                    input.value = '';
+                    showDeleteConfirmDialog(postId, 'post');
                 });
             });
 
@@ -387,49 +473,111 @@
             document.querySelectorAll('.delete-comment-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const postId = this.getAttribute('data-post-id');
-                    const commentIndex = parseInt(this.getAttribute('data-comment-index'));
-                    if (confirm('確定要刪除這則留言嗎？')) {
-                        socket.emit('deleteComment', { postId, commentIndex, username: currentUser.username });
-                    }
+                    const commentIndex = this.getAttribute('data-comment-index');
+                    showDeleteConfirmDialog(postId, 'comment', commentIndex);
+                });
+            });
+
+            // 添加禁制用戶按鈕事件
+            document.querySelectorAll('.ban-user-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const username = this.getAttribute('data-username');
+                    showAdminPanel(username);
                 });
             });
         }
 
-        // 更新導航列頭像和驗證標誌
-        function updateNavAvatar() {
+        // 顯示刪除確認對話框
+        function showDeleteConfirmDialog(id, type, commentIndex = null) {
+            currentDeletePostId = type === 'post' ? id : null;
+            currentDeleteComment = type === 'comment' ? { postId: id, commentIndex } : null;
+            deleteConfirmTitle.textContent = type === 'post' ? '確定要刪除這篇貼文嗎？' : '確定要刪除這則留言嗎？';
+            deleteConfirmDialog.classList.remove('hidden');
+        }
+
+        // 隱藏刪除確認對話框
+        function hideDeleteConfirmDialog() {
+            deleteConfirmDialog.classList.add('hidden');
+            currentDeletePostId = null;
+            currentDeleteComment = null;
+        }
+
+        // 顯示管理員面板
+        function showAdminPanel(username) {
+            banUsernameInput.value = username;
+            banDaysInput.value = '';
+            adminPanelModal.classList.remove('hidden');
+        }
+
+        // 更新 UI 狀態
+        function updateUIState() {
+            if (currentUser) {
+                welcomeSection.classList.add('hidden');
+                navButtons.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                usernameDisplay.textContent = currentUser.displayName || currentUser.username;
+                if (currentUser.isAdmin) {
+                    adminPanelBtn.classList.remove('hidden');
+                } else {
+                    adminPanelBtn.classList.add('hidden');
+                }
+                updateAvatar();
+                if (currentUser.isBanned) {
+                    contentSection.classList.add('hidden');
+                    bannedSection.classList.remove('hidden');
+                    updateBanCountdown();
+                } else {
+                    contentSection.classList.remove('hidden');
+                    bannedSection.classList.add('hidden');
+                }
+            } else {
+                welcomeSection.classList.remove('hidden');
+                contentSection.classList.add('hidden');
+                bannedSection.classList.add('hidden');
+                navButtons.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+                adminPanelBtn.classList.add('hidden');
+            }
+        }
+
+        // 更新停權倒計時
+        function updateBanCountdown() {
+            if (!currentUser || !currentUser.isBanned) return;
+            const totalDays = 7;
+            const remainingDays = currentUser.banDays;
+            const progress = (remainingDays / totalDays) * 251;
+            countdownCircle.style.strokeDashoffset = 251 - progress;
+            countdownDays.textContent = remainingDays;
+            daysCount.textContent = remainingDays;
+        }
+
+        // 更新頭像顯示
+        function updateAvatar() {
             if (currentUser && currentUser.avatar) {
                 navAvatarText.classList.add('hidden');
                 navAvatarImg.src = currentUser.avatar;
                 navAvatarImg.classList.remove('hidden');
+                profileAvatar.classList.add('hidden');
+                profileAvatarImg.src = currentUser.avatar;
+                profileAvatarImg.classList.remove('hidden');
             } else {
                 navAvatarText.textContent = currentUser ? (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() : '';
                 navAvatarText.classList.remove('hidden');
                 navAvatarImg.classList.add('hidden');
-            }
-            navVerifiedBadge.classList.toggle('hidden', !currentUser || !currentUser.isVerified);
-        }
-
-        // 更新編輯模態框頭像
-        function updateEditAvatar() {
-            if (currentUser && currentUser.avatar) {
-                editAvatar.classList.add('hidden');
-                editAvatarImg.src = currentUser.avatar;
-                editAvatarImg.classList.remove('hidden');
-            } else {
-                editAvatar.textContent = currentUser ? (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() : '';
-                editAvatar.classList.remove('hidden');
-                editAvatarImg.classList.add('hidden');
+                profileAvatar.textContent = currentUser ? (currentUser.displayName || currentUser.username).charAt(0).toUpperCase() : '';
+                profileAvatar.classList.remove('hidden');
+                profileAvatarImg.classList.add('hidden');
             }
         }
 
-        // 顯示編輯模態框
-        function showEditProfile() {
+        // 顯示個人資料
+        function showProfile() {
             if (currentUser) {
-                updateEditAvatar();
-                document.getElementById('edit-displayname-text').textContent = currentUser.displayName || currentUser.username;
-                document.getElementById('edit-username').textContent = currentUser.username;
-                document.getElementById('edit-about').textContent = currentUser.about || '未設置';
-                document.getElementById('edit-email').textContent = currentUser.email || '未設置';
+                updateAvatar();
+                document.getElementById('profile-displayname').textContent = currentUser.displayName || currentUser.username;
+                document.getElementById('profile-username').textContent = currentUser.username;
+                document.getElementById('profile-about').textContent = currentUser.about || '未設置';
+                document.getElementById('profile-email').textContent = currentUser.email || '未設置';
                 document.getElementById('update-displayname').value = currentUser.displayName || currentUser.username;
                 document.getElementById('update-username').value = currentUser.username;
                 document.getElementById('update-about').value = currentUser.about || '';
@@ -437,37 +585,30 @@
                 document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
-                profileTab.classList.remove('hidden');
-                passwordTab.classList.add('hidden');
-                profileTabBtn.classList.add('tab-active');
-                profileTabBtn.classList.remove('text-gray-500');
-                passwordTabBtn.classList.remove('tab-active');
-                passwordTabBtn.classList.add('text-gray-500');
+                showProfileTab();
                 profileModal.classList.remove('hidden');
+                settingsDropdown.classList.remove('active');
             }
         }
 
-        // 更新 UI 狀態
-        function updateUIState() {
-            if (currentUser) {
-                navButtons.classList.add('hidden');
-                userInfo.classList.remove('hidden');
-                postForm.classList.remove('hidden');
-                usernameDisplay.textContent = currentUser.displayName || currentUser.username;
-                navVerifiedBadge.classList.toggle('hidden', !currentUser.isVerified);
-                if (currentUser.isAdmin) {
-                    adminPanelBtn.classList.remove('hidden');
-                } else {
-                    adminPanelBtn.classList.add('hidden');
-                }
-                updateNavAvatar();
-            } else {
-                navButtons.classList.remove('hidden');
-                userInfo.classList.add('hidden');
-                postForm.classList.add('hidden');
-                adminPanelBtn.classList.add('hidden');
-                navVerifiedBadge.classList.add('hidden');
-            }
+        // 顯示個人資料選項卡
+        function showProfileTab() {
+            profileTab.classList.remove('hidden');
+            passwordTab.classList.add('hidden');
+            profileTabBtn.classList.add('tab-active');
+            profileTabBtn.classList.remove('text-gray-500');
+            passwordTabBtn.classList.remove('tab-active');
+            passwordTabBtn.classList.add('text-gray-500');
+        }
+
+        // 顯示密碼選項卡
+        function showPasswordTab() {
+            profileTab.classList.add('hidden');
+            passwordTab.classList.remove('hidden');
+            profileTabBtn.classList.remove('tab-active');
+            profileTabBtn.classList.add('text-gray-500');
+            passwordTabBtn.classList.add('tab-active');
+            passwordTabBtn.classList.remove('text-gray-500');
         }
 
         // 檢查並驗證儲存的 token
@@ -479,20 +620,16 @@
             }
         }
 
-        // Socket.IO 錯誤處理
-        socket.on('connect_error', (error) => {
-            console.error('Socket.IO connection error:', error);
-            alert('無法連接到伺服器，請檢查網路或後端服務');
-        });
-
         // Socket.IO 事件監聽
         socket.on('connect', () => {
-            console.log('Socket.IO connected');
             checkStoredToken();
         });
 
+        socket.on('posts', (posts) => {
+            renderPosts(posts);
+        });
+
         socket.on('verifyTokenResponse', (data) => {
-            console.log('verifyTokenResponse:', data);
             if (data.success) {
                 currentUser = data.user;
                 updateUIState();
@@ -503,95 +640,7 @@
             }
         });
 
-        socket.on('posts', (posts) => {
-            console.log('Received posts:', posts);
-            renderPosts(posts);
-        });
-
-        socket.on('addPostResponse', (data) => {
-            console.log('addPostResponse:', data);
-            if (data.success) {
-                postContent.value = '';
-                charCount.textContent = '0/280';
-                socket.emit('getPosts');
-                alert('貼文已發布！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('deletePostResponse', (data) => {
-            console.log('deletePostResponse:', data);
-            if (data.success) {
-                socket.emit('getPosts');
-                alert('貼文已成功刪除！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('addCommentResponse', (data) => {
-            console.log('addCommentResponse:', data);
-            if (data.success) {
-                socket.emit('getPosts');
-                alert('留言已發布！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('deleteCommentResponse', (data) => {
-            console.log('deleteCommentResponse:', data);
-            if (data.success) {
-                socket.emit('getPosts');
-                alert('留言已刪除！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updateProfileResponse', (data) => {
-            console.log('updateProfileResponse:', data);
-            if (data.success) {
-                localStorage.setItem('username', data.user.username);
-                currentUser = data.user;
-                updateUIState();
-                updateEditAvatar();
-                profileModal.classList.add('hidden');
-                alert('個人資料已更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updateAvatarResponse', (data) => {
-            console.log('updateAvatarResponse:', data);
-            if (data.success) {
-                currentUser.avatar = data.avatar;
-                updateNavAvatar();
-                updateEditAvatar();
-                alert('頭像已更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
-        socket.on('updatePasswordResponse', (data) => {
-            console.log('updatePasswordResponse:', data);
-            if (data.success) {
-                localStorage.setItem('password', document.getElementById('new-password').value);
-                document.getElementById('current-password').value = '';
-                document.getElementById('new-password').value = '';
-                document.getElementById('confirm-password').value = '';
-                newPasswordError.classList.add('hidden');
-                alert('密碼已成功更新！');
-            } else {
-                alert(data.message);
-            }
-        });
-
         socket.on('loginResponse', (data) => {
-            console.log('loginResponse:', data);
             if (data.success) {
                 currentUser = data.user;
                 localStorage.setItem('username', currentUser.username);
@@ -604,7 +653,6 @@
         });
 
         socket.on('registerResponse', (data) => {
-            console.log('registerResponse:', data);
             if (data.success) {
                 currentUser = data.user;
                 localStorage.setItem('username', currentUser.username);
@@ -617,24 +665,167 @@
             }
         });
 
+        socket.on('updateProfileResponse', (data) => {
+            if (data.success) {
+                localStorage.setItem('username', data.user.username);
+                currentUser = data.user;
+                updateUIState();
+                profileModal.classList.add('hidden');
+                alert('個人資料已更新！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('updatePasswordResponse', (data) => {
+            if (data.success) {
+                localStorage.setItem('password', document.getElementById('new-password').value);
+                document.getElementById('current-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                newPasswordError.classList.add('hidden');
+                alert('密碼已成功更新！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('updateAvatarResponse', (data) => {
+            if (data.success) {
+                currentUser.avatar = data.avatar;
+                updateAvatar();
+                alert('頭像已更新！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('postResponse', (data) => {
+            if (!data.success) {
+                alert(data.message);
+            } else {
+                postContent.value = '';
+                updateCharCount();
+            }
+        });
+
+        socket.on('deletePostResponse', (data) => {
+            if (data.success) {
+                hideDeleteConfirmDialog();
+                alert('貼文已成功刪除！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('deleteCommentResponse', (data) => {
+            if (data.success) {
+                hideDeleteConfirmDialog();
+                alert('留言已成功刪除！');
+            } else {
+                alert(data.message);
+            }
+        });
+
+        socket.on('addCommentResponse', (data) => {
+            if (!data.success) {
+                alert(data.message);
+            }
+        });
+
+        socket.on('banUserResponse', (data) => {
+            if (data.success) {
+                adminPanelModal.classList.add('hidden');
+                alert(data.message);
+            } else {
+                alert(data.message);
+            }
+        });
+
         // 事件監聽器
         document.addEventListener('DOMContentLoaded', () => {
-            // 導航列事件
+            document.getElementById('start-btn').addEventListener('click', () => {
+                registerModal.classList.remove('hidden');
+            });
+
             document.getElementById('login-nav-btn').addEventListener('click', () => {
                 loginModal.classList.remove('hidden');
+            });
+
+            document.getElementById('login-btn').addEventListener('click', () => {
+                const identifier = document.getElementById('login-identifier').value.trim();
+                const password = document.getElementById('login-password').value;
+                if (!identifier || !password) {
+                    alert('請填寫所有欄位');
+                    return;
+                }
+                socket.emit('login', { identifier, password });
             });
 
             document.getElementById('register-nav-btn').addEventListener('click', () => {
                 registerModal.classList.remove('hidden');
             });
 
-            document.getElementById('settings-btn').addEventListener('click', () => {
-                settingsDropdown.classList.toggle('hidden');
+            document.getElementById('register-btn').addEventListener('click', () => {
+                const displayName = document.getElementById('register-displayname').value.trim();
+                const username = document.getElementById('register-username').value.trim();
+                const password = document.getElementById('register-password').value;
+                if (!username || !password) {
+                    alert('請填寫所有必填欄位');
+                    return;
+                }
+                if (!validateUsername(username)) {
+                    usernameError.classList.remove('hidden');
+                    return;
+                }
+                if (!validatePassword(password)) {
+                    passwordError.classList.remove('hidden');
+                    return;
+                }
+                usernameError.classList.add('hidden');
+                passwordError.classList.add('hidden');
+                socket.emit('register', { username, displayName, about: '', password });
             });
 
-            document.getElementById('profile-btn').addEventListener('click', () => {
-                showEditProfile();
-                settingsDropdown.classList.add('hidden');
+            document.getElementById('to-register-btn').addEventListener('click', () => {
+                loginModal.classList.add('hidden');
+                registerModal.classList.remove('hidden');
+            });
+
+            document.getElementById('to-login-btn').addEventListener('click', () => {
+                registerModal.classList.add('hidden');
+                loginModal.classList.remove('hidden');
+            });
+
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.modal').classList.add('hidden');
+                    passwordError.classList.add('hidden');
+                    usernameError.classList.add('hidden');
+                    newPasswordError.classList.add('hidden');
+                    updateUsernameError.classList.add('hidden');
+                });
+            });
+
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', function() {
+                    this.closest('.modal').classList.add('hidden');
+                    passwordError.classList.add('hidden');
+                    usernameError.classList.add('hidden');
+                    newPasswordError.classList.add('hidden');
+                    updateUsernameError.classList.add('hidden');
+                });
+            });
+
+            document.getElementById('settings-btn').addEventListener('click', () => {
+                settingsDropdown.classList.toggle('active');
+            });
+
+            document.getElementById('profile-btn').addEventListener('click', showProfile);
+
+            document.getElementById('admin-panel-btn').addEventListener('click', () => {
+                showAdminPanel('');
+                settingsDropdown.classList.remove('active');
             });
 
             document.getElementById('logout-btn').addEventListener('click', () => {
@@ -642,55 +833,28 @@
                 localStorage.removeItem('username');
                 localStorage.removeItem('password');
                 updateUIState();
-                settingsDropdown.classList.add('hidden');
+                settingsDropdown.classList.remove('active');
                 alert('已成功登出');
-            });
-
-            // 模態框事件
-            document.querySelectorAll('.close-modal').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    this.closest('.modal').classList.add('hidden');
-                    updateUsernameError.classList.add('hidden');
-                    newPasswordError.classList.add('hidden');
-                });
-            });
-
-            document.querySelectorAll('.modal-overlay').forEach(overlay => {
-                overlay.addEventListener('click', function() {
-                    this.closest('.modal').classList.add('hidden');
-                    updateUsernameError.classList.add('hidden');
-                    newPasswordError.classList.add('hidden');
-                });
-            });
-
-            // 貼文表單事件
-            postContent.addEventListener('input', () => {
-                const content = postContent.value;
-                charCount.textContent = `${content.length}/280`;
-                if (content.length > 280) {
-                    charCount.classList.add('text-red-500');
-                } else {
-                    charCount.classList.remove('text-red-500');
-                }
             });
 
             document.getElementById('post-btn').addEventListener('click', () => {
                 const content = postContent.value.trim();
-                if (!currentUser) {
-                    alert('請先登入才能發布貼文');
-                    loginModal.classList.remove('hidden');
-                    return;
-                }
                 if (!content) {
                     alert('請輸入貼文內容');
                     return;
                 }
                 if (!validatePostContent(content)) {
-                    alert('貼文內容不得超過280個字元');
+                    alert('貼文內容不得超過500個字元');
                     return;
                 }
-                socket.emit('addPost', { username: currentUser.username, content });
+                if (currentUser.isBanned) {
+                    alert('您的帳號已被停權，無法發布貼文');
+                    return;
+                }
+                socket.emit('createPost', { username: currentUser.username, content });
             });
+
+            postContent.addEventListener('input', updateCharCount);
 
             document.getElementById('update-profile-btn').addEventListener('click', () => {
                 const newDisplayName = document.getElementById('update-displayname').value.trim();
@@ -729,72 +893,7 @@
                 socket.emit('updatePassword', { username: currentUser.username, currentPassword, newPassword });
             });
 
-            document.getElementById('login-btn').addEventListener('click', () => {
-                const identifier = document.getElementById('login-identifier').value.trim();
-                const password = document.getElementById('login-password').value;
-                if (!identifier || !password) {
-                    alert('請填寫所有欄位');
-                    return;
-                }
-                socket.emit('login', { identifier, password });
-            });
-
-            document.getElementById('register-btn').addEventListener('click', () => {
-                const displayName = document.getElementById('register-displayname').value.trim();
-                const username = document.getElementById('register-username').value.trim();
-                const password = document.getElementById('register-password').value;
-                if (!username || !password) {
-                    alert('請填寫所有必填欄位');
-                    return;
-                }
-                if (!validateUsername(username)) {
-                    document.getElementById('username-error').classList.remove('hidden');
-                    return;
-                }
-                if (!validatePassword(password)) {
-                    document.getElementById('password-error').classList.remove('hidden');
-                    return;
-                }
-                document.getElementById('username-error').classList.add('hidden');
-                document.getElementById('password-error').classList.add('hidden');
-                socket.emit('register', { username, displayName, about: '', password });
-            });
-
-            document.getElementById('to-register-btn').addEventListener('click', () => {
-                loginModal.classList.add('hidden');
-                registerModal.classList.remove('hidden');
-            });
-
-            document.getElementById('to-login-btn').addEventListener('click', () => {
-                registerModal.classList.add('hidden');
-                loginModal.classList.remove('hidden');
-            });
-
-            document.addEventListener('click', (event) => {
-                if (!event.target.closest('#settings-btn') && !event.target.closest('#settings-dropdown')) {
-                    settingsDropdown.classList.add('hidden');
-                }
-            });
-
-            profileTabBtn.addEventListener('click', () => {
-                profileTab.classList.remove('hidden');
-                passwordTab.classList.add('hidden');
-                profileTabBtn.classList.add('tab-active');
-                profileTabBtn.classList.remove('text-gray-500');
-                passwordTabBtn.classList.remove('tab-active');
-                passwordTabBtn.classList.add('text-gray-500');
-            });
-
-            passwordTabBtn.addEventListener('click', () => {
-                profileTab.classList.add('hidden');
-                passwordTab.classList.remove('hidden');
-                profileTabBtn.classList.remove('tab-active');
-                profileTabBtn.classList.add('text-gray-500');
-                passwordTabBtn.classList.add('tab-active');
-                passwordTabBtn.classList.remove('text-gray-500');
-            });
-
-            changeAvatarBtnModal.addEventListener('click', () => {
+            document.getElementById('change-avatar-btn').addEventListener('click', () => {
                 avatarInput.click();
             });
 
@@ -816,8 +915,53 @@
                 reader.readAsDataURL(file);
             });
 
-            // 初始獲取貼文
-            socket.emit('getPosts');
+            confirmDeleteBtn.addEventListener('click', () => {
+                if (currentDeletePostId) {
+                    socket.emit('deletePost', { postId: currentDeletePostId, username: currentUser.username });
+                } else if (currentDeleteComment) {
+                    socket.emit('deleteComment', {
+                        postId: currentDeleteComment.postId,
+                        commentIndex: parseInt(currentDeleteComment.commentIndex),
+                        username: currentUser.username
+                    });
+                }
+            });
+
+            cancelDeleteBtn.addEventListener('click', hideDeleteConfirmDialog);
+
+            banUserBtn.addEventListener('click', () => {
+                const targetUsername = banUsernameInput.value.trim();
+                const banDays = parseInt(banDaysInput.value);
+                if (!targetUsername || !banDays || banDays < 1) {
+                    alert('請輸入有效的用戶名稱和禁制天數');
+                    return;
+                }
+                socket.emit('banUser', { adminUsername: currentUser.username, targetUsername, banDays });
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('#settings-btn') && !event.target.closest('#settings-dropdown')) {
+                    settingsDropdown.classList.remove('active');
+                }
+            });
+
+            document.querySelector('.dialog-overlay').addEventListener('click', hideDeleteConfirmDialog);
+
+            const lockIcon = document.querySelector('.lock-animation');
+            if (lockIcon) {
+                setInterval(() => {
+                    lockIcon.classList.add('lock-animation');
+                    setTimeout(() => {
+                        lockIcon.classList.remove('lock-animation');
+                    }, 500);
+                }, 5000);
+            }
+
+            profileTabBtn.addEventListener('click', showProfileTab);
+            passwordTabBtn.addEventListener('click', showPasswordTab);
+
+            updateUIState();
+            updateCharCount();
         });
     </script>
 </body>
