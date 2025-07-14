@@ -33,6 +33,15 @@
         .lock-animation {
             animation: shake 0.5s;
         }
+        .verified-badge {
+            background-color: #f59e0b;
+            color: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 2px white;
+        }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
@@ -306,137 +315,100 @@
 
         // 顯示貼文
         function renderPosts(posts) {
-            postsContainer.innerHTML = '';
-            posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
-            posts.forEach(post => {
-                const formattedDate = formatDate(post.timestamp);
-                const isOwner = currentUser && currentUser.username === post.username;
-                const isAdmin = currentUser && currentUser.isAdmin;
-                
-                const postElement = document.createElement('div');
-                postElement.className = 'bg-white rounded-xl shadow-md p-6 post-card';
-                postElement.setAttribute('data-post-id', post.id);
-                
-                let postHTML = `
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center">
-                            <div class="h-10 w-10 rounded-full overflow-hidden">
-                `;
-                
-                if (post.avatar) {
-                    postHTML += `<img src="${post.avatar}" class="h-full w-full object-cover" alt="${post.displayName || post.username}的頭像">`;
-                } else {
-                    postHTML += `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">
-                                    ${(post.displayName || post.username).charAt(0).toUpperCase()}
-                                </div>`;
-                }
-                
-                postHTML += `
-                            </div>
-                            <div class="ml-3">
-                                <h4 class="font-bold text-gray-800">${post.displayName || post.username}</h4>
-                                <p class="text-sm text-gray-500">@${post.username}</p>
-                                <p class="text-sm text-gray-500">${formattedDate}</p>
-                            </div>
+    const postsContainer = document.getElementById('posts-container');
+    postsContainer.innerHTML = '';
+    if (posts.length === 0) {
+        postsContainer.innerHTML = '<p class="text-gray-600 text-center">尚未有貼文</p>';
+        return;
+    }
+    posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    posts.forEach(post => {
+        const formattedDate = formatPostDate(post.timestamp);
+        const isOwner = currentUser && currentUser.username === post.username;
+        const isAdmin = currentUser && currentUser.isAdmin;
+        const postElement = document.createElement('div');
+        postElement.className = 'bg-white rounded-lg shadow-sm p-6 transition duration-300 post-card';
+        postElement.setAttribute('data-post-id', post.id);
+        let postHTML = `
+            <div class="flex items-start">
+                <div class="h-12 w-12 rounded-full overflow-hidden mr-4 cursor-pointer" data-username="${post.username}" onclick="window.location.href='https://zyra.cococolacat.org/profile.html?user=@${post.username}'">
+                    ${post.avatar ? `<img src="${post.avatar}" class="h-full w-full object-cover" alt="${post.displayName || post.username}的頭像">` :
+                    `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">${(post.displayName || post.username).charAt(0).toUpperCase()}</div>`}
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-gray-900 flex items-center">
+                                ${post.displayName || post.username}
+                                <span class="verified-badge ml-1 h-4 w-4 ${post.isVerified ? '' : 'hidden'}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                            </h3>
+                            <p class="text-sm text-gray-500">@${post.username} · ${formattedDate}</p>
                         </div>
-                        <div class="flex space-x-2">
-                `;
-                
-                if (isOwner || isAdmin) {
-                    postHTML += `
-                        <button class="delete-post-btn delete-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    `;
-                }
-                
-                if (isAdmin && post.username !== currentUser.username) {
-                    postHTML += `
-                        <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${post.username}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
-                            </svg>
-                        </button>
-                    `;
-                }
-                
-                postHTML += `
-                        </div>
+                        ${(isOwner || isAdmin) ? `
+                            <button class="delete-post-btn text-gray-400 hover:text-red-500 transition-colors" data-post-id="${post.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        ` : ''}
                     </div>
-                    <div class="mt-4">
+                    <div class="mt-2">
                         <p class="text-gray-800 whitespace-pre-wrap">${post.content}</p>
                     </div>
-                    <div class="mt-6 border-t pt-4">
-                        <h5 class="font-bold text-gray-700 mb-2">留言 (${post.comments ? post.comments.length : 0})</h5>
-                        <div class="space-y-3 mb-4 comments-container-${post.id}">
-                `;
-                
-                if (post.comments) {
-                    post.comments.forEach((comment, index) => {
-                        const commentDate = formatDate(comment.timestamp);
-                        postHTML += `
-                            <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-start">
-                                <div class="flex items-center">
-                                    <div class="h-6 w-6 rounded-full overflow-hidden">
-                        `;
-                        if (comment.avatar) {
-                            postHTML += `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">`;
-                        } else {
-                            postHTML += `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center text-xs">
-                                            ${(comment.displayName || comment.username).charAt(0).toUpperCase()}
-                                        </div>`;
-                        }
-                        postHTML += `
-                                    </div>
-                                    <div class="ml-2">
-                                        <span class="font-medium text-gray-800">${comment.displayName || comment.username}</span>
-                                        <span class="text-xs text-gray-500 ml-2">@${comment.username}</span>
-                                        <span class="text-xs text-gray-500 ml-2">${commentDate}</span>
-                                        <p class="text-gray-700 mt-1 text-sm">${comment.content}</p>
-                                    </div>
-                                </div>
-                                <div class="flex space-x-2">
-                        `;
-                        if (isOwner || isAdmin) {
-                            postHTML += `
-                                <button class="delete-comment-btn text-gray-400 hover:text-red-500 transition" data-post-id="${post.id}" data-comment-index="${index}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            `;
-                        }
-                        if (isAdmin && comment.username !== currentUser.username) {
-                            postHTML += `
-                                <button class="ban-user-btn text-gray-400 hover:text-red-500 transition" data-username="${comment.username}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636A9 9 0 015.636 18.364m12.728-12.728A9 9 0 015.636 18.364m12.728-12.728L5.636 18.364" />
-                                    </svg>
-                                </button>
-                            `;
-                        }
-                        postHTML += `
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-                
+                    <div class="comments-container mt-4 space-y-4">
+        `;
+        if (post.comments && post.comments.length > 0) {
+            post.comments.forEach((comment, index) => {
+                const commentDate = formatPostDate(comment.timestamp);
+                const isCommentOwner = currentUser && currentUser.username === comment.username;
                 postHTML += `
+                    <div class="flex items-start" data-comment-index="${index}">
+                        <div class="h-8 w-8 rounded-full overflow-hidden mr-3 cursor-pointer" data-username="${comment.username}" onclick="window.location.href='https://zyra.cococolacat.org/profile.html?user=@${comment.username}'">
+                            ${comment.avatar ? `<img src="${comment.avatar}" class="h-full w-full object-cover" alt="${comment.displayName || comment.username}的頭像">` :
+                            `<div class="bg-indigo-100 text-indigo-800 font-bold h-full w-full flex items-center justify-center">${(comment.displayName || comment.username).charAt(0).toUpperCase()}</div>`}
                         </div>
-                        <div class="flex">
-                            <input type="text" class="comment-input flex-grow border border-gray-300 rounded-l-lg p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="添加留言...">
-                            <button class="add-comment-btn bg-indigo-600 text-white px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發送</button>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-gray-900">${comment.displayName || comment.username}</span>
+                                    <span class="verified-badge ml-1 h-4 w-4 ${comment.isVerified ? '' : 'hidden'}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                    <span class="text-sm text-gray-500 ml-2">@${comment.username} · ${commentDate}</span>
+                                </div>
+                                ${(isCommentOwner || isAdmin) ? `
+                                    <button class="delete-comment-btn text-gray-400 hover:text-red-500 transition-colors" data-post-id="${post.id}" data-comment-index="${index}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <p class="text-gray-700">${comment.content}</p>
                         </div>
                     </div>
                 `;
-                
-                postElement.innerHTML = postHTML;
-                postsContainer.appendChild(postElement);
             });
+        }
+        postHTML += `
+                    </div>
+                    <div class="mt-4 flex items-center space-x-2">
+                        <input type="text" class="comment-input w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="撰寫留言..." data-post-id="${post.id}">
+                        <button class="add-comment-btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" data-post-id="${post.id}">發布</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        postElement.innerHTML = postHTML;
+        postsContainer.appendChild(postElement);
+    });
+}
 
             // 添加留言按鈕事件
             document.querySelectorAll('.add-comment-btn').forEach(btn => {
