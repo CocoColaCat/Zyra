@@ -1,262 +1,34 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zyra貼文系統</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f5f7fa;
-        }
-        .post-shadow {
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-        .comment-input:focus {
-            outline: none;
-            border-color: #4299e1;
-        }
-        .add-button {
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Meta refresh（立即跳轉） -->
+  <meta http-equiv="refresh" content="0;url=https://zyra.cococolacat.org/" />
+  <title>Redirecting…</title>
+  <style>
+    /* 簡單置中顯示備援文字 */
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans CJK TC","Microsoft JhengHei",sans-serif}
+    .wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1rem}
+    a{color:inherit;text-decoration:underline}
+  </style>
+  <script>
+    // JavaScript 立即重導（使用 replace 以避免在歷史紀錄留下中介頁）
+    (function(){
+      try {
+        window.location.replace("https://zyra.cococolacat.org/");
+      } catch(e) {
+        // 若 replace 失敗則改用 assign
+        window.location.assign("https://zyra.cococolacat.org/");
+      }
+    })();
+  </script>
 </head>
-<body class="pb-16">
-    <!-- 頂部導航欄 -->
-    <header class="fixed top-0 left-0 right-0 bg-white shadow-sm z-10">
-        <div class="flex justify-center items-center px-4 py-3">
-            <h1 class="text-xl font-bold text-black">Zyra</h1>
-        </div>
-    </header>
-
-    <!-- 主要內容區 -->
-    <main class="mt-16 mb-16 px-4">
-        <!-- 貼文列表 -->
-        <div id="postsList" class="space-y-4 py-2">
-            <!-- 貼文將在這裡動態生成 -->
-        </div>
-    </main>
-
-    <!-- 底部導航欄 -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div class="flex justify-around py-2">
-            <button class="p-2 text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-            </button>
-            <button class="p-2 text-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </button>
-            <button class="p-2 text-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-            </button>
-            <button class="p-2 text-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-            </button>
-        </div>
-    </nav>
-
-    <!-- 新增貼文按鈕 (右下角) -->
-    <button id="newPostBtn" class="fixed bottom-20 right-4 bg-blue-600 text-white rounded-full p-3 add-button z-20">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-    </button>
-
-    <!-- 新增貼文彈窗 -->
-    <div id="newPostModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 hidden">
-        <div class="bg-white w-full max-w-md mx-4 rounded-lg overflow-hidden">
-            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-black">新增貼文</h3>
-                <button id="closeModalBtn" class="text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div class="p-4">
-                <textarea id="postContent" class="w-full border border-gray-300 rounded-lg p-3 h-32 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="分享你的想法..."></textarea>
-                <div class="mt-4 flex justify-end">
-                    <button id="submitPostBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">發佈</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 示例貼文數據
-        const samplePosts = [
-            {
-                id: 1,
-                author: "陳小明",
-                avatar: createAvatar("陳"),
-                content: "今天天氣真好，去了海邊散步，感覺心情舒暢！分享一下美好的一天 😊",
-                time: "2小時前",
-                comments: [
-                    { author: "林小華", avatar: createAvatar("林"), content: "看起來很棒！下次我也要去。", time: "1小時前" }
-                ]
-            },
-            {
-                id: 2,
-                author: "王大華",
-                avatar: createAvatar("王"),
-                content: "剛剛完成了一個重要的專案，終於可以好好休息了。大家週末有什麼計劃嗎？",
-                time: "5小時前",
-                comments: [
-                    { author: "李小芳", avatar: createAvatar("李"), content: "恭喜完成專案！我打算去爬山。", time: "4小時前" },
-                    { author: "張小龍", avatar: createAvatar("張"), content: "我要在家看電影，放鬆一下。", time: "3小時前" }
-                ]
-            },
-            {
-                id: 3,
-                author: "林小美",
-                avatar: createAvatar("林"),
-                content: "推薦一本最近看的書：《原子習慣》，真的很有啟發性，改變了我的日常習慣！有人讀過嗎？",
-                time: "昨天",
-                comments: []
-            }
-        ];
-
-        // 創建頭像SVG
-        function createAvatar(initial) {
-            const colors = ["#4F46E5", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#3B82F6"];
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            
-            return `<svg class="h-8 w-8 rounded-full text-white flex items-center justify-center" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                <rect width="40" height="40" fill="${randomColor}" rx="20"></rect>
-                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-weight="bold" fill="white">${initial}</text>
-            </svg>`;
-        }
-
-        // 渲染貼文
-        function renderPosts() {
-            const postsList = document.getElementById('postsList');
-            postsList.innerHTML = '';
-            
-            samplePosts.forEach(post => {
-                const postElement = document.createElement('div');
-                postElement.className = 'bg-white rounded-lg post-shadow';
-                
-                let commentsHTML = '';
-                post.comments.forEach(comment => {
-                    commentsHTML += `
-                        <div class="py-2 border-t border-gray-100">
-                            <div class="flex items-start">
-                                <div class="mr-2 flex-shrink-0">${comment.avatar}</div>
-                                <div class="flex-grow">
-                                    <div class="flex justify-between">
-                                        <span class="font-medium">${comment.author}</span>
-                                        <span class="text-xs text-gray-500">${comment.time}</span>
-                                    </div>
-                                    <p class="text-gray-700">${comment.content}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                postElement.innerHTML = `
-                    <div class="p-4">
-                        <div class="flex items-center mb-3">
-                            <div class="mr-3">${post.avatar}</div>
-                            <div>
-                                <h3 class="font-semibold">${post.author}</h3>
-                                <p class="text-xs text-gray-500">${post.time}</p>
-                            </div>
-                        </div>
-                        <p class="text-gray-800 mb-4">${post.content}</p>
-                        <div class="border-t border-gray-100"></div>
-                        <div class="comments-section mt-2">
-                            ${commentsHTML}
-                        </div>
-                        <div class="mt-3 flex items-center">
-                            <div class="mr-2 flex-shrink-0">${createAvatar("我")}</div>
-                            <div class="flex-grow flex">
-                                <input type="text" class="comment-input flex-grow border border-gray-300 rounded-l-lg px-3 py-2 text-sm" placeholder="發表評論...">
-                                <button class="send-comment-btn bg-blue-600 text-white px-3 rounded-r-lg">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                postsList.appendChild(postElement);
-            });
-            
-            // 添加評論功能
-            document.querySelectorAll('.send-comment-btn').forEach((btn, index) => {
-                btn.addEventListener('click', function() {
-                    const input = this.previousElementSibling;
-                    const content = input.value.trim();
-                    
-                    if (content) {
-                        const post = samplePosts[index];
-                        post.comments.push({
-                            author: "我",
-                            avatar: createAvatar("我"),
-                            content: content,
-                            time: "剛剛"
-                        });
-                        
-                        renderPosts();
-                        input.value = '';
-                    }
-                });
-            });
-        }
-
-        // 初始化頁面
-        document.addEventListener('DOMContentLoaded', function() {
-            renderPosts();
-            
-            // 新增貼文功能
-            const newPostBtn = document.getElementById('newPostBtn');
-            const newPostModal = document.getElementById('newPostModal');
-            const closeModalBtn = document.getElementById('closeModalBtn');
-            const submitPostBtn = document.getElementById('submitPostBtn');
-            const postContent = document.getElementById('postContent');
-            
-            newPostBtn.addEventListener('click', function() {
-                newPostModal.classList.remove('hidden');
-            });
-            
-            closeModalBtn.addEventListener('click', function() {
-                newPostModal.classList.add('hidden');
-                postContent.value = '';
-            });
-            
-            submitPostBtn.addEventListener('click', function() {
-                const content = postContent.value.trim();
-                
-                if (content) {
-                    const newPost = {
-                        id: samplePosts.length + 1,
-                        author: "我",
-                        avatar: createAvatar("我"),
-                        content: content,
-                        time: "剛剛",
-                        comments: []
-                    };
-                    
-                    samplePosts.unshift(newPost);
-                    renderPosts();
-                    newPostModal.classList.add('hidden');
-                    postContent.value = '';
-                }
-            });
-        });
-    </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'95ef0e34c18f8092',t:'MTc1MjQ3NTUwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<body>
+  <div class="wrap">
+    <h1>正在重新導向…</h1>
+    <p>如果瀏覽器沒有自動跳轉，請點擊下面的連結：</p>
+    <p><a href="https://zyra.cococolacat.org/">前往 zyra.cococolacat.org</a></p>
+  </div>
+</body>
 </html>
